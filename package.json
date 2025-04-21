@@ -1,0 +1,73 @@
+{
+  "name": "dengvpn",
+  "description": "Free & Unlimited VPN Service",
+  "version": "1.1.0",
+  "main": "loader.js",
+  "bin": "loader.js",
+  "homepage": "https://github.com/code3-dev/dengvpn",
+  "scripts": {
+    "start": "electron .",
+    "verify-core": "node verify-core.js",
+    "obfuscate": "node obfuscate.js",
+    "build": "npm run verify-core && npm run obfuscate && electron-builder",
+    "build:win": "npm run verify-core && npm run obfuscate && electron-builder --win",
+    "build:linux": "npm run verify-core && npm run obfuscate && electron-builder --linux"
+  },
+  "author": {
+    "name": "Hossein Pira",
+    "email": "h3dev.pira@gmail.com"
+  },
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^34.0.2",
+    "electron-builder": "^25.1.8",
+    "javascript-obfuscator": "^4.1.0"
+  },
+  "dependencies": {
+    "axios": "^1.8.4",
+    "sudo-prompt": "^9.2.1"
+  },
+  "build": {
+    "appId": "com.dengvpn.app",
+    "productName": "DengVPN",
+    "icon": "assets/icon.png",
+    "files": [
+      "dist/**/*",
+      "node_modules/**/*",
+      "assets/**/*",
+      "loader.js",
+      "core/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "core",
+        "to": "core",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "asarUnpack": [
+      "core/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "assets/icon.ico"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Network",
+      "icon": "assets/icon.png",
+      "maintainer": "h3dev.pira@gmail.com"
+    }
+  }
+}
