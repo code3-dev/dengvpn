@@ -74,25 +74,6 @@ DengVPN operates through a multi-layered architecture:
 3. **Core Engine**: V2Ray binary executing VPN tunneling protocols
 4. **System Integration**: Automatic proxy configuration for seamless system-wide VPN
 
-## 📁 Project Structure
-
-```
-dengvpn/
-├── assets/              # UI resources and frontend files
-│   ├── index.html       # Main application interface
-│   ├── splash.html      # Loading screen
-│   └── icon.png         # Application icon
-├── core/                # V2Ray core files
-│   ├── v2ray.exe        # V2Ray binary
-│   ├── config.json      # V2Ray configuration
-│   └── *.dat            # Geo-location databases
-├── dist/                # Compiled and obfuscated code
-├── main.js              # Main Electron process
-├── preload.js           # Secure IPC bridge
-├── loader.js            # Application entry point
-├── verify-core.js       # Core verification utility
-└── obfuscate.js         # Code protection script
-```
 
 ## 🔄 How It Works
 
