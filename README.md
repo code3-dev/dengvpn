@@ -31,13 +31,6 @@ Unlike traditional VPN services that require paid subscriptions, DengVPN connect
 - **🔄 Auto-Restart**: Seamlessly reconnects if connection is interrupted
 - **💻 Windows Optimized**: Specifically designed and tested for Windows environments
 
-## 🖥️ System Requirements
-
-- Windows 8/10/11 (64-bit)
-- 4GB RAM (minimum)
-- 100MB free disk space
-- Internet connection
-
 ## 📥 Installation
 
 ### Option 1: Download Release (Recommended)
