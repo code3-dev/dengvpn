@@ -258,7 +258,7 @@ function createWindow() {
             dialog.showMessageBox(win, {
               type: 'info',
               title: 'About DengVPN',
-              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.1.0`,
+              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.2.0`,
               buttons: ['OK'],
             });
           }

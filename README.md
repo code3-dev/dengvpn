@@ -10,7 +10,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Platform](https://img.shields.io/badge/Platform-Windows-brightgreen.svg)](https://github.com/code3-dev/dengvpn)
-[![Version](https://img.shields.io/badge/Version-1.1.0-orange.svg)](https://github.com/code3-dev/dengvpn)
+[![Version](https://img.shields.io/badge/Version-1.2.0-orange.svg)](https://github.com/code3-dev/dengvpn)
 
 </div>
 
