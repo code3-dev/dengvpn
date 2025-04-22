@@ -19,11 +19,11 @@
       "settings": {
         "vnext": [
           {
-            "address": "89.18.58.63",
-            "port": 180,
+            "address": "172.67.170.103",
+            "port": 443,
             "users": [
               {
-                "id": "d13fc2f5-3e05-4795-81eb-44143a09e552",
+                "id": "76221bfb-e92f-4e80-81c5-6fe48f50ac0b",
                 "alterId": 0,
                 "security": "auto"
               }
@@ -32,10 +32,21 @@
         ]
       },
       "streamSettings": {
-        "network": "tcp",
-        "security": "",
-        "tlsSettings": null,
-        "wsSettings": null
+        "network": "ws",
+        "security": "tls",
+        "tlsSettings": {
+          "serverName": "glweidf.sbs",
+          "alpn": [
+            "h3"
+          ],
+          "fingerprint": "chrome"
+        },
+        "wsSettings": {
+          "path": "/linkws",
+          "headers": {
+            "Host": "glweidf.sbs"
+          }
+        }
       }
     }
   ]

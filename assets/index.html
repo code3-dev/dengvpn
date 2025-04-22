@@ -890,24 +890,96 @@
       lastStats[type] = currentValue;
     }
     
+    // Parse VLESS URL
+    function parseVlessUrl(vlessUrl) {
+      try {
+        // Format: vless://uuid@server:port?param1=value1&param2=value2#remarks
+        const urlWithoutProtocol = vlessUrl.replace('vless://', '');
+        
+        // Split URL to get UUID and server part
+        const uuidAndServer = urlWithoutProtocol.split('@');
+        if (uuidAndServer.length < 2) {
+          throw new Error('Invalid VLESS URL format');
+        }
+        
+        const uuid = uuidAndServer[0];
+        
+        // Extract server address and port
+        const serverPart = uuidAndServer[1].split('?')[0];
+        const [serverAddress, serverPort] = serverPart.split(':');
+        
+        // Extract query parameters
+        const paramsMatch = urlWithoutProtocol.match(/\?(.*?)#/);
+        const params = paramsMatch ? paramsMatch[1] : '';
+        
+        // Parse the query parameters
+        const queryParams = {};
+        if (params) {
+          params.split('&').forEach(param => {
+            const [key, value] = param.split('=');
+            if (key && value) {
+              queryParams[key] = decodeURIComponent(value);
+            }
+          });
+        }
+        
+        // Extract remarks (name)
+        const remarksMatch = urlWithoutProtocol.match(/#(.*?)$/);
+        const remarks = remarksMatch ? decodeURIComponent(remarksMatch[1]) : '';
+        
+        return {
+          id: uuid,
+          add: serverAddress,
+          port: serverPort,
+          net: queryParams.type || 'tcp',
+          tls: queryParams.security === 'tls',
+          path: queryParams.path || '/',
+          host: queryParams.host || '',
+          ps: remarks,
+          protocol: 'vless'
+        };
+      } catch (error) {
+        console.error('Error parsing VLESS URL:', error);
+        return null;
+      }
+    }
+    
     // Parse vmess URL to get server details
     function parseVmessUrl(vmessUrl) {
       try {
         const base64 = vmessUrl.replace('vmess://', '');
-        const decodedContent = atob(base64);
-        return JSON.parse(decodedContent);
+        // Use decodeURIComponent and escape to properly handle UTF-8 characters
+        const decodedContent = decodeURIComponent(escape(atob(base64)));
+        const parsedData = JSON.parse(decodedContent);
+        parsedData.protocol = 'vmess';
+        return parsedData;
       } catch (error) {
         console.error('Error parsing vmess URL:', error);
         return null;
       }
     }
     
+    // Parse config URL (detects protocol type and calls appropriate parser)
+    function parseConfigUrl(url) {
+      if (url.startsWith('vmess://')) {
+        return parseVmessUrl(url);
+      } else if (url.startsWith('vless://')) {
+        return parseVlessUrl(url);
+      }
+      return null;
+    }
+    
     // Format server name
     function formatServerName(serverConfig) {
       if (serverConfig.ps) {
-        return serverConfig.ps;
+        // Make sure the server name is properly displayed with UTF-8 characters
+        try {
+          return serverConfig.ps;
+        } catch (e) {
+          return `${serverConfig.protocol.toUpperCase()} - ${serverConfig.add}:${serverConfig.port}`;
+        }
       } else {
-        return `${serverConfig.add}:${serverConfig.port}`;
+        return `${serverConfig.protocol.toUpperCase()} - ${serverConfig.add}:${serverConfig.port}`;
       }
     }
     
@@ -1044,7 +1116,7 @@
       }
       
       configs.forEach((config, index) => {
-        const serverConfig = parseVmessUrl(config);
+        const serverConfig = parseConfigUrl(config);
         if (!serverConfig) return;
         
         const option = document.createElement('option');
@@ -1097,7 +1169,7 @@
         selectedServerIndex = index;
         connectButton.disabled = false;
         
-        const serverConfig = parseVmessUrl(configs[index]);
+        const serverConfig = parseConfigUrl(configs[index]);
         updateServerDetails(serverConfig);
         
         if (!isConnected) {

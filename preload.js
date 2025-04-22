@@ -7,12 +7,28 @@ contextBridge.exposeInMainWorld('electron', {
 });
 
 contextBridge.exposeInMainWorld('vpn', {
-  getConfigs: () => ipcRenderer.send('get-configs'),
-  connect: (configIndex) => ipcRenderer.send('connect-vpn', configIndex),
-  disconnect: () => ipcRenderer.send('disconnect-vpn'),
-  requestStats: () => ipcRenderer.send('request-stats'),
-  openExternal: (url) => ipcRenderer.send('open-external', url),
-  onUpdateConfigs: (callback) => ipcRenderer.on('update-configs', (event, configs) => callback(configs)),
-  onConnectionStatus: (callback) => ipcRenderer.on('connection-status', (event, isConnected) => callback(isConnected)),
-  onConnectionStats: (callback) => ipcRenderer.on('connection-stats', (event, stats) => callback(stats))
+  connect: (serverIndex) => {
+    ipcRenderer.send('connect-vpn', serverIndex);
+  },
+  disconnect: () => {
+    ipcRenderer.send('disconnect-vpn');
+  },
+  getConfigs: () => {
+    ipcRenderer.send('get-configs');
+  },
+  requestStats: () => {
+    ipcRenderer.send('request-stats');
+  },
+  onUpdateConfigs: (callback) => {
+    ipcRenderer.on('update-configs', (event, configs) => callback(configs));
+  },
+  onConnectionStatus: (callback) => {
+    ipcRenderer.on('connection-status', (event, status) => callback(status));
+  },
+  onConnectionStats: (callback) => {
+    ipcRenderer.on('connection-stats', (event, stats) => callback(stats));
+  },
+  openExternal: (url) => {
+    ipcRenderer.send('open-external', url);
+  }
 });

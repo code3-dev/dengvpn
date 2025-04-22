@@ -54,13 +54,112 @@ const disableProxyBatPath = path.join(getResourcePath('core'), 'disable_proxy.ba
 // Fetch configs from URL
 async function fetchConfigs() {
   try {
-    const response = await axios.get('https://raw.githubusercontent.com/davudsedft/vless/refs/heads/main/vmess.txt');
+    const response = await axios.get('https://raw.githubusercontent.com/code3-dev/proxy/refs/heads/main/api.txt');
     const data = response.data;
-    const configLines = data.split('\n').filter(line => line.trim().startsWith('vmess://'));
+    
+    // Extract both vmess and vless URLs
+    const configLines = data.split('\n').filter(line => {
+      const trimmed = line.trim();
+      return trimmed.startsWith('vmess://') || trimmed.startsWith('vless://');
+    });
+    
     return configLines;
   } catch (error) {
     console.error('Error fetching configs:', error);
+    
+    // Get current retry count from command line args
+    const args = process.argv.slice(1);
+    let retryCount = 0;
+    
+    for (let i = 0; i < args.length; i++) {
+      if (args[i] === '--retry-count' && i + 1 < args.length) {
+        retryCount = parseInt(args[i + 1], 10);
+        break;
+      }
+    }
+    
+    // Increment retry count
+    retryCount++;
+    
+    if (retryCount < 3) {
+      // Automatically restart the application with incremented retry count
+      console.log(`Fetch attempt ${retryCount} failed, restarting app to retry...`);
+      app.relaunch({ args: [...process.argv.slice(1).filter(arg => !arg.startsWith('--retry-count')), '--retry-count', retryCount.toString()] });
+      app.exit(0);
+    } else {
+      // After 3 retries, show error and don't restart
+      console.log(`Maximum retry attempts (3) reached, showing error dialog`);
+      
+      dialog.showMessageBox({
+        type: 'error',
+        title: 'Connection Error',
+        message: 'Failed to fetch server lists after multiple attempts. Please check your internet connection and try again later.',
+        buttons: ['OK']
+      }).then(() => {
+        // Quit the app after user acknowledges the error
+        app.quit();
+      });
+    }
+    
     return [];
+  }
+}
+
+// Parse VLESS URL
+function parseVlessUrl(vlessUrl) {
+  try {
+    // Format: vless://uuid@server:port?param1=value1&param2=value2#remarks
+    const urlWithoutProtocol = vlessUrl.replace('vless://', '');
+    
+    // Split URL to get UUID and server part
+    const uuidAndServer = urlWithoutProtocol.split('@');
+    if (uuidAndServer.length < 2) {
+      throw new Error('Invalid VLESS URL format');
+    }
+    
+    const uuid = uuidAndServer[0];
+    
+    // Extract server address and port
+    const serverPart = uuidAndServer[1].split('?')[0];
+    const [serverAddress, serverPort] = serverPart.split(':');
+    
+    // Extract query parameters
+    const paramsMatch = urlWithoutProtocol.match(/\?(.*?)#/);
+    const params = paramsMatch ? paramsMatch[1] : '';
+    
+    // Parse the query parameters
+    const queryParams = {};
+    if (params) {
+      params.split('&').forEach(param => {
+        const [key, value] = param.split('=');
+        if (key && value) {
+          queryParams[key] = decodeURIComponent(value);
+        }
+      });
+    }
+    
+    // Extract remarks (name)
+    const remarksMatch = urlWithoutProtocol.match(/#(.*?)$/);
+    const remarks = remarksMatch ? decodeURIComponent(remarksMatch[1]) : '';
+    
+    return {
+      id: uuid,
+      add: serverAddress,
+      port: serverPort,
+      net: queryParams.type || 'tcp',
+      tls: queryParams.security === 'tls',
+      path: queryParams.path || '/',
+      host: queryParams.host || '',
+      sni: queryParams.sni || '',
+      fp: queryParams.fp || '',
+      alpn: queryParams.alpn || '',
+      serviceName: queryParams.serviceName || queryParams.service || '',
+      ps: remarks,
+      protocol: 'vless'
+    };
+  } catch (error) {
+    console.error('Error parsing VLESS URL:', error);
+    return null;
   }
 }
 
@@ -129,6 +228,28 @@ function createWindow() {
       ]
     },
     {
+      label: 'Tools',
+      submenu: [
+        {
+          label: 'IP Information',
+          click: () => {
+            const ipInfoWindow = new BrowserWindow({
+              width: 800,
+              height: 600,
+              parent: win,
+              icon: getAssetPath('icon.png'),
+              webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true
+              }
+            });
+            ipInfoWindow.loadURL('https://ipinfo-client2.vercel.app/');
+            ipInfoWindow.setMenuBarVisibility(false);
+          }
+        }
+      ]
+    },
+    {
       label: 'Help',
       submenu: [
         {
@@ -141,6 +262,10 @@ function createWindow() {
               buttons: ['OK'],
             });
           }
+        },
+        {
+          label: 'GitHub Repository',
+          click: () => shell.openExternal('https://github.com/code3-dev/dengvpn')
         },
         { type: 'separator' },
         {
@@ -280,9 +405,52 @@ function startV2ray(config) {
       throw new Error(`V2Ray executable not found at: ${v2rayExePath}`);
     }
 
-    // Decode base64 config
-    const decodedConfig = Buffer.from(config.replace('vmess://', ''), 'base64').toString('utf-8');
-    const configObj = JSON.parse(decodedConfig);
+    let configObj;
+    if (config.startsWith('vmess://')) {
+      // Decode base64 config for vmess
+      const decodedConfig = Buffer.from(config.replace('vmess://', ''), 'base64').toString('utf-8');
+      configObj = JSON.parse(decodedConfig);
+      configObj.protocol = 'vmess';
+    } else if (config.startsWith('vless://')) {
+      // Parse VLESS URL
+      configObj = parseVlessUrl(config);
+    } else {
+      throw new Error('Unsupported protocol');
+    }
+    
+    if (!configObj) {
+      throw new Error('Failed to parse config');
+    }
+    
+    console.log('Parsed config object:', JSON.stringify(configObj, null, 2));
+    
+    // Check the version of v2ray to determine feature support
+    let v2rayVersion = '4.0.0'; // Default assumption
+    try {
+      const versionOutput = require('child_process').execSync(`"${v2rayExePath}" --version`).toString();
+      const versionMatch = versionOutput.match(/V2Ray (\d+\.\d+\.\d+)/);
+      if (versionMatch) {
+        v2rayVersion = versionMatch[1];
+      }
+      console.log('Detected V2Ray version:', v2rayVersion);
+    } catch (err) {
+      console.warn('Could not determine V2Ray version:', err.message);
+    }
+    
+    // Fallback for gRPC in older versions
+    let transportNetwork = configObj.net;
+    const supportsGrpc = compareVersions(v2rayVersion, '4.36.0') >= 0;
+    
+    if (transportNetwork === 'grpc' && !supportsGrpc) {
+      console.warn('V2Ray version does not support gRPC, falling back to TCP with WebSocket');
+      transportNetwork = 'ws';
+      dialog.showMessageBox({
+        type: 'warning',
+        title: 'gRPC Not Supported',
+        message: 'Your V2Ray version ('+v2rayVersion+') does not support gRPC transport. Falling back to WebSocket. For better connectivity, please upgrade to V2Ray v4.36.0 or higher.',
+        buttons: ['OK']
+      });
+    }
     
     // Create a v2ray config file
     const v2rayConfig = {
@@ -299,33 +467,80 @@ function startV2ray(config) {
         }
       }],
       "outbounds": [{
-        "protocol": "vmess",
+        "protocol": configObj.protocol,
         "settings": {
           "vnext": [{
             "address": configObj.add,
             "port": parseInt(configObj.port),
             "users": [{
               "id": configObj.id,
-              "alterId": parseInt(configObj.aid),
-              "security": "auto"
+              "alterId": configObj.protocol === 'vmess' ? parseInt(configObj.aid || "0") : undefined,
+              "security": configObj.protocol === 'vmess' ? "auto" : undefined,
+              "encryption": configObj.protocol === 'vless' ? "none" : undefined
             }]
           }]
         },
         "streamSettings": {
-          "network": configObj.net,
+          "network": transportNetwork,
           "security": configObj.tls ? "tls" : "",
           "tlsSettings": configObj.tls ? {
-            "serverName": configObj.host || configObj.add
-          } : null,
-          "wsSettings": configObj.net === "ws" ? {
-            "path": configObj.path || "/",
-            "headers": {
-              "Host": configObj.host || ""
-            }
+            "serverName": configObj.sni || configObj.host || configObj.add,
+            "alpn": configObj.alpn ? configObj.alpn.split(',') : undefined,
+            "fingerprint": configObj.fp || undefined,
           } : null
         }
       }]
     };
+    
+    // Add specific transport settings based on network type
+    const streamSettings = v2rayConfig.outbounds[0].streamSettings;
+    
+    if (transportNetwork === "ws") {
+      streamSettings.wsSettings = {
+        "path": configObj.path || "/",
+        "headers": {
+          "Host": configObj.host || ""
+        }
+      };
+    } else if (transportNetwork === "grpc" && supportsGrpc) {
+      streamSettings.grpcSettings = {
+        "serviceName": configObj.serviceName || "",
+        "multiMode": false
+      };
+    } else if (transportNetwork === "tcp") {
+      if (configObj.type === "http") {
+        streamSettings.tcpSettings = {
+          "header": {
+            "type": "http",
+            "request": {
+              "version": "1.1",
+              "method": "GET",
+              "path": [configObj.path || "/"],
+              "headers": {
+                "Host": [configObj.host || ""],
+                "User-Agent": ["Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.75 Safari/537.36"],
+                "Accept-Encoding": ["gzip, deflate"],
+                "Connection": ["keep-alive"],
+                "Pragma": "no-cache"
+              }
+            }
+          }
+        };
+      }
+    } else if (transportNetwork === "kcp") {
+      streamSettings.kcpSettings = {
+        "mtu": 1350,
+        "tti": 50,
+        "uplinkCapacity": 12,
+        "downlinkCapacity": 100,
+        "congestion": false,
+        "readBufferSize": 2,
+        "writeBufferSize": 2,
+        "header": {
+          "type": configObj.type || "none"
+        }
+      };
+    }
 
     // Ensure the directory for config.json exists
     const configDir = path.dirname(v2rayConfigPath);
@@ -333,6 +548,7 @@ function startV2ray(config) {
       fs.mkdirSync(configDir, { recursive: true });
     }
 
+    console.log('Writing V2Ray config:', JSON.stringify(v2rayConfig, null, 2));
     fs.writeFileSync(v2rayConfigPath, JSON.stringify(v2rayConfig, null, 2));
 
     // Start V2Ray process
@@ -364,7 +580,7 @@ function startV2ray(config) {
     
   } catch (error) {
     console.error('Error starting V2Ray:', error);
-    dialog.showErrorBox('Connection Error', 'Failed to start V2Ray connection');
+    dialog.showErrorBox('Connection Error', 'Failed to start V2Ray connection: ' + error.message);
     isConnected = false;
     win.webContents.send('connection-status', false);
   }
@@ -430,9 +646,17 @@ async function sendConnectionStats() {
     let host = null;
     if (selectedConfig) {
       try {
-        const decodedConfig = Buffer.from(selectedConfig.replace('vmess://', ''), 'base64').toString('utf-8');
-        const configObj = JSON.parse(decodedConfig);
-        host = configObj.add;
+        let configObj;
+        if (selectedConfig.startsWith('vmess://')) {
+          const decodedConfig = Buffer.from(selectedConfig.replace('vmess://', ''), 'base64').toString('utf-8');
+          configObj = JSON.parse(decodedConfig);
+        } else if (selectedConfig.startsWith('vless://')) {
+          configObj = parseVlessUrl(selectedConfig);
+        }
+        
+        if (configObj) {
+          host = configObj.add;
+        }
       } catch (error) {
         console.error('Error parsing config for stats:', error);
       }
@@ -731,3 +955,19 @@ app.on('will-quit', () => {
   }
   stopV2ray();
 });
+
+// Helper function to compare version strings
+function compareVersions(v1, v2) {
+  const parts1 = v1.split('.').map(Number);
+  const parts2 = v2.split('.').map(Number);
+  
+  for (let i = 0; i < 3; i++) {
+    const part1 = parts1[i] || 0;
+    const part2 = parts2[i] || 0;
+    
+    if (part1 > part2) return 1;
+    if (part1 < part2) return -1;
+  }
+  
+  return 0;
+}
