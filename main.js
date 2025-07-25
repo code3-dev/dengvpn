@@ -45,25 +45,21 @@ function getPreloadPath() {
     : path.join(__dirname, 'preload.js');
 }
 
-// Path to the v2ray config file
-const v2rayConfigPath = path.join(getResourcePath('core'), 'config.json');
-const v2rayExePath = path.join(getResourcePath('core'), 'v2ray.exe');
+// Path to the xray config file
+const xrayConfigPath = path.join(getResourcePath('core'), 'config.json');
+const xrayExePath = path.join(getResourcePath('core'), 'xray.exe');
 const systemProxyBatPath = path.join(getResourcePath('core'), 'run.bat');
 const disableProxyBatPath = path.join(getResourcePath('core'), 'disable_proxy.bat');
 
 // Fetch configs from URL
 async function fetchConfigs() {
   try {
-    const response = await axios.get('https://raw.githubusercontent.com/code3-dev/proxy/refs/heads/main/api.txt');
+    const response = await axios.get('https://raw.githubusercontent.com/cinemaplus-dev/irdevs/refs/heads/main/api.json');
     const data = response.data;
     
-    // Extract both vmess and vless URLs
-    const configLines = data.split('\n').filter(line => {
-      const trimmed = line.trim();
-      return trimmed.startsWith('vmess://') || trimmed.startsWith('vless://');
-    });
+    // The data is now an array of objects with name and url properties
+    return data;
     
-    return configLines;
   } catch (error) {
     console.error('Error fetching configs:', error);
     
@@ -243,7 +239,7 @@ function createWindow() {
                 contextIsolation: true
               }
             });
-            ipInfoWindow.loadURL('https://ipinfo-client2.vercel.app/');
+            ipInfoWindow.loadURL('https://nextjs-ip.netlify.app/');
             ipInfoWindow.setMenuBarVisibility(false);
           }
         }
@@ -258,7 +254,7 @@ function createWindow() {
             dialog.showMessageBox(win, {
               type: 'info',
               title: 'About DengVPN',
-              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.2.0`,
+              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.3.0\nUsing Xray Core`,
               buttons: ['OK'],
             });
           }
@@ -383,204 +379,67 @@ timeout /t 3 > nul`;
 function showMissingCoreFilesError() {
   dialog.showErrorBox(
     'Missing Core Files',
-    'The required V2Ray core files were not found.\n\n' +
+    'The required Xray core files were not found.\n\n' +
     'Please make sure you have the following files in the "core" folder:\n' +
-    '- v2ray.exe\n' +
+    '- xray.exe\n' +
     '- geoip.dat\n' +
-    '- geosite.dat\n' +
-    '- v2ctl.exe\n\n' +
-    'You can download the V2Ray core files from the official website and place them in the core directory.'
+    '- geosite.dat\n\n' +
+    'You can download the Xray core files from the official website and place them in the core directory.'
   );
 }
 
-function startV2ray(config) {
+function startV2ray(configUrl) {
   if (v2rayProcess) {
     stopV2ray();
   }
 
   try {
-    // Check if v2ray executable exists
-    if (!fs.existsSync(v2rayExePath)) {
+    // Check if xray executable exists
+    if (!fs.existsSync(xrayExePath)) {
       showMissingCoreFilesError();
-      throw new Error(`V2Ray executable not found at: ${v2rayExePath}`);
+      throw new Error(`Xray executable not found at: ${xrayExePath}`);
     }
 
-    let configObj;
-    if (config.startsWith('vmess://')) {
-      // Decode base64 config for vmess
-      const decodedConfig = Buffer.from(config.replace('vmess://', ''), 'base64').toString('utf-8');
-      configObj = JSON.parse(decodedConfig);
-      configObj.protocol = 'vmess';
-    } else if (config.startsWith('vless://')) {
-      // Parse VLESS URL
-      configObj = parseVlessUrl(config);
-    } else {
-      throw new Error('Unsupported protocol');
-    }
-    
-    if (!configObj) {
-      throw new Error('Failed to parse config');
-    }
-    
-    console.log('Parsed config object:', JSON.stringify(configObj, null, 2));
-    
-    // Check the version of v2ray to determine feature support
-    let v2rayVersion = '4.0.0'; // Default assumption
-    try {
-      const versionOutput = require('child_process').execSync(`"${v2rayExePath}" --version`).toString();
-      const versionMatch = versionOutput.match(/V2Ray (\d+\.\d+\.\d+)/);
-      if (versionMatch) {
-        v2rayVersion = versionMatch[1];
-      }
-      console.log('Detected V2Ray version:', v2rayVersion);
-    } catch (err) {
-      console.warn('Could not determine V2Ray version:', err.message);
-    }
-    
-    // Fallback for gRPC in older versions
-    let transportNetwork = configObj.net;
-    const supportsGrpc = compareVersions(v2rayVersion, '4.36.0') >= 0;
-    
-    if (transportNetwork === 'grpc' && !supportsGrpc) {
-      console.warn('V2Ray version does not support gRPC, falling back to TCP with WebSocket');
-      transportNetwork = 'ws';
-      dialog.showMessageBox({
-        type: 'warning',
-        title: 'gRPC Not Supported',
-        message: 'Your V2Ray version ('+v2rayVersion+') does not support gRPC transport. Falling back to WebSocket. For better connectivity, please upgrade to V2Ray v4.36.0 or higher.',
-        buttons: ['OK']
+    // Fetch the config from the URL
+    axios.get(configUrl).then(response => {
+      // Write the config directly to the config.json file
+      fs.writeFileSync(xrayConfigPath, JSON.stringify(response.data, null, 2));
+      
+      // Start Xray process with the config file
+      v2rayProcess = spawn(xrayExePath, ['-config', xrayConfigPath], { cwd: path.dirname(xrayExePath) });
+      
+      v2rayProcess.stdout.on('data', (data) => {
+        console.log(`Xray stdout: ${data}`);
       });
-    }
-    
-    // Create a v2ray config file
-    const v2rayConfig = {
-      "log": {
-        "loglevel": "warning"
-      },
-      "inbounds": [{
-        "port": 1080,
-        "listen": "127.0.0.1",
-        "protocol": "socks",
-        "settings": {
-          "auth": "noauth",
-          "udp": true
-        }
-      }],
-      "outbounds": [{
-        "protocol": configObj.protocol,
-        "settings": {
-          "vnext": [{
-            "address": configObj.add,
-            "port": parseInt(configObj.port),
-            "users": [{
-              "id": configObj.id,
-              "alterId": configObj.protocol === 'vmess' ? parseInt(configObj.aid || "0") : undefined,
-              "security": configObj.protocol === 'vmess' ? "auto" : undefined,
-              "encryption": configObj.protocol === 'vless' ? "none" : undefined
-            }]
-          }]
-        },
-        "streamSettings": {
-          "network": transportNetwork,
-          "security": configObj.tls ? "tls" : "",
-          "tlsSettings": configObj.tls ? {
-            "serverName": configObj.sni || configObj.host || configObj.add,
-            "alpn": configObj.alpn ? configObj.alpn.split(',') : undefined,
-            "fingerprint": configObj.fp || undefined,
-          } : null
-        }
-      }]
-    };
-    
-    // Add specific transport settings based on network type
-    const streamSettings = v2rayConfig.outbounds[0].streamSettings;
-    
-    if (transportNetwork === "ws") {
-      streamSettings.wsSettings = {
-        "path": configObj.path || "/",
-        "headers": {
-          "Host": configObj.host || ""
-        }
-      };
-    } else if (transportNetwork === "grpc" && supportsGrpc) {
-      streamSettings.grpcSettings = {
-        "serviceName": configObj.serviceName || "",
-        "multiMode": false
-      };
-    } else if (transportNetwork === "tcp") {
-      if (configObj.type === "http") {
-        streamSettings.tcpSettings = {
-          "header": {
-            "type": "http",
-            "request": {
-              "version": "1.1",
-              "method": "GET",
-              "path": [configObj.path || "/"],
-              "headers": {
-                "Host": [configObj.host || ""],
-                "User-Agent": ["Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/55.0.2883.75 Safari/537.36"],
-                "Accept-Encoding": ["gzip, deflate"],
-                "Connection": ["keep-alive"],
-                "Pragma": "no-cache"
-              }
-            }
-          }
-        };
-      }
-    } else if (transportNetwork === "kcp") {
-      streamSettings.kcpSettings = {
-        "mtu": 1350,
-        "tti": 50,
-        "uplinkCapacity": 12,
-        "downlinkCapacity": 100,
-        "congestion": false,
-        "readBufferSize": 2,
-        "writeBufferSize": 2,
-        "header": {
-          "type": configObj.type || "none"
-        }
-      };
-    }
-
-    // Ensure the directory for config.json exists
-    const configDir = path.dirname(v2rayConfigPath);
-    if (!fs.existsSync(configDir)) {
-      fs.mkdirSync(configDir, { recursive: true });
-    }
-
-    console.log('Writing V2Ray config:', JSON.stringify(v2rayConfig, null, 2));
-    fs.writeFileSync(v2rayConfigPath, JSON.stringify(v2rayConfig, null, 2));
-
-    // Start V2Ray process
-    v2rayProcess = spawn(v2rayExePath, ['-config', v2rayConfigPath]);
-    
-    v2rayProcess.stdout.on('data', (data) => {
-      console.log(`V2Ray stdout: ${data}`);
+      
+      v2rayProcess.stderr.on('data', (data) => {
+        console.error(`Xray stderr: ${data}`);
+      });
+      
+      v2rayProcess.on('close', (code) => {
+        console.log(`Xray process exited with code ${code}`);
+        isConnected = false;
+        win.webContents.send('connection-status', false);
+        clearInterval(statsInterval);
+      });
+      
+      isConnected = true;
+      win.webContents.send('connection-status', true);
+      
+      // Set system proxy
+      setSystemProxy();
+      
+      // Start sending real-time stats
+      startSendingStats();
+    }).catch(error => {
+      console.error('Error fetching config from URL:', error);
+      dialog.showErrorBox('Config Error', 'Failed to fetch configuration from URL: ' + error.message);
     });
-    
-    v2rayProcess.stderr.on('data', (data) => {
-      console.error(`V2Ray stderr: ${data}`);
-    });
-    
-    v2rayProcess.on('close', (code) => {
-      console.log(`V2Ray process exited with code ${code}`);
-      isConnected = false;
-      win.webContents.send('connection-status', false);
-      clearInterval(statsInterval);
-    });
-    
-    isConnected = true;
-    win.webContents.send('connection-status', true);
-    
-    // Set system proxy
-    setSystemProxy();
-    
-    // Start sending real-time stats
-    startSendingStats();
+
     
   } catch (error) {
-    console.error('Error starting V2Ray:', error);
-    dialog.showErrorBox('Connection Error', 'Failed to start V2Ray connection: ' + error.message);
+    console.error('Error starting Xray:', error);
+    dialog.showErrorBox('Connection Error', 'Failed to start Xray connection: ' + error.message);
     isConnected = false;
     win.webContents.send('connection-status', false);
   }
@@ -646,20 +505,47 @@ async function sendConnectionStats() {
     let host = null;
     if (selectedConfig) {
       try {
-        let configObj;
-        if (selectedConfig.startsWith('vmess://')) {
-          const decodedConfig = Buffer.from(selectedConfig.replace('vmess://', ''), 'base64').toString('utf-8');
-          configObj = JSON.parse(decodedConfig);
-        } else if (selectedConfig.startsWith('vless://')) {
-          configObj = parseVlessUrl(selectedConfig);
+        // Try to extract host from the config file
+        const configData = fs.readFileSync(xrayConfigPath, 'utf8');
+        const config = JSON.parse(configData);
+        
+        // Extract host from outbounds if available - handle different config formats
+        if (config.outbounds && config.outbounds.length > 0) {
+          const outbound = config.outbounds[0];
+          
+          if (outbound.settings && outbound.settings.vnext && outbound.settings.vnext.length > 0) {
+            // Standard V2Ray/Xray config format
+            host = outbound.settings.vnext[0].address;
+          } else if (outbound.settings && outbound.settings.servers && outbound.settings.servers.length > 0) {
+            // Alternative format (e.g., for Shadowsocks)
+            host = outbound.settings.servers[0].address;
+          } else if (outbound.server) {
+            // Simple format
+            host = outbound.server;
+          }
         }
         
-        if (configObj) {
-          host = configObj.add;
+        // If we couldn't get host from config, try to extract from selectedConfig
+        if (!host && selectedConfig) {
+          if (selectedConfig.url && typeof selectedConfig.url === 'string') {
+            // Try to extract host from URL
+            const urlMatch = selectedConfig.url.match(/(?:https?:\/\/)?([^:\/\s]+)/);
+            if (urlMatch && urlMatch[1]) {
+              host = urlMatch[1];
+            }
+          } else if (selectedConfig.add) {
+            // Old format parsed config
+            host = selectedConfig.add;
+          }
         }
       } catch (error) {
         console.error('Error parsing config for stats:', error);
       }
+    }
+    
+    // If we couldn't determine the host, use a default
+    if (!host) {
+      host = '1.1.1.1'; // Fallback to Cloudflare DNS
     }
     
     // Measure ping
@@ -693,7 +579,7 @@ function checkCoreDirectory() {
     return false;
   }
   
-  const requiredFiles = ['v2ray.exe', 'geoip.dat', 'geosite.dat'];
+  const requiredFiles = ['xray.exe', 'geoip.dat', 'geosite.dat'];
   const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(corePath, file)));
   
   if (missingFiles.length > 0) {
@@ -708,14 +594,14 @@ function checkCoreDirectory() {
 function selectCoreDirectory() {
   return new Promise((resolve) => {
     dialog.showOpenDialog({
-      title: 'Select V2Ray Core Directory',
+      title: 'Select Xray Core Directory',
       properties: ['openDirectory']
     }).then(result => {
       if (!result.canceled && result.filePaths.length > 0) {
         const selectedDir = result.filePaths[0];
         
         // Check if the selected directory has the required files
-        const requiredFiles = ['v2ray.exe', 'geoip.dat', 'geosite.dat'];
+        const requiredFiles = ['xray.exe', 'geoip.dat', 'geosite.dat'];
         const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(selectedDir, file)));
         
         if (missingFiles.length > 0) {
@@ -754,7 +640,7 @@ function ensureCoreFiles() {
     path.join(app.getPath('documents'), 'DengVPN', 'core')
   ];
 
-  const requiredFiles = ['v2ray.exe', 'geoip.dat', 'geosite.dat', 'v2ctl.exe'];
+  const requiredFiles = ['xray.exe', 'geoip.dat', 'geosite.dat'];
   const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(corePath, file)));
 
   if (missingFiles.length > 0) {
@@ -795,7 +681,7 @@ function ensureCoreFiles() {
   return true;
 }
 
-// Function to download V2Ray core files from GitHub
+// Function to download Xray core files from GitHub
 async function downloadCoreFiles() {
   const corePath = getResourcePath('core');
   if (!fs.existsSync(corePath)) {
@@ -805,8 +691,8 @@ async function downloadCoreFiles() {
   // Show download dialog
   dialog.showMessageBox({
     type: 'info',
-    title: 'Downloading V2Ray Core',
-    message: 'DengVPN needs to download V2Ray core files. This may take a few minutes.',
+    title: 'Downloading Xray Core',
+    message: 'DengVPN needs to download Xray core files. This may take a few minutes.',
     buttons: ['OK']
   });
   
@@ -816,14 +702,13 @@ async function downloadCoreFiles() {
   dialog.showMessageBox({
     type: 'info',
     title: 'Manual Download Required',
-    message: 'Please download the V2Ray core files from the official repository: https://github.com/v2ray/v2ray-core/releases\n\n' + 
+    message: 'Please download the Xray core files from the official repository: https://github.com/XTLS/Xray-core/releases\n\n' + 
     'Extract the files and place them in the following directory:\n' + 
     corePath + '\n\n' +
     'Required files:\n' +
-    '- v2ray.exe\n' +
+    '- xray.exe\n' +
     '- geoip.dat\n' +
-    '- geosite.dat\n' +
-    '- v2ctl.exe',
+    '- geosite.dat',
     buttons: ['OK']
   });
   
@@ -842,13 +727,13 @@ app.whenReady().then(async () => {
   console.log('Global core directory:', global.__coredir);
   console.log('Resource path:', process.resourcesPath);
   console.log('Core directory path:', corePath);
-  console.log('v2ray.exe path:', v2rayExePath);
-  console.log('config.json path:', v2rayConfigPath);
+  console.log('xray.exe path:', xrayExePath);
+  console.log('config.json path:', xrayConfigPath);
   console.log('run.bat path:', systemProxyBatPath);
   
   // Check if paths exist
   console.log('Core path exists:', fs.existsSync(corePath));
-  console.log('v2ray.exe exists:', fs.existsSync(v2rayExePath));
+  console.log('xray.exe exists:', fs.existsSync(xrayExePath));
   console.log('=========================================');
   
   try {
@@ -925,8 +810,20 @@ ipcMain.on('open-external', (event, url) => {
 ipcMain.on('connect-vpn', (event, configIndex) => {
   if (configList[configIndex]) {
     selectedConfig = configList[configIndex];
-    startV2ray(selectedConfig);
+    // Handle both old and new config formats
+    if (selectedConfig.url) {
+      // New format with url property
+      startV2ray(selectedConfig.url);
+    } else {
+      // Old format (direct VLESS/VMess URLs)
+      startV2ray(selectedConfig);
+    }
   }
+});
+
+ipcMain.on('connect-vpn-url', (event, configUrl) => {
+  // Direct connection using config URL
+  startV2ray(configUrl);
 });
 
 ipcMain.on('disconnect-vpn', () => {

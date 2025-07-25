@@ -737,7 +737,7 @@
     </div>
     
     <footer class="footer">
-      <div>DengVPN v1.2.0</div>
+      <div>DengVPN v1.3.0</div>
       <div>© 2025 DengVPN</div>
     </footer>
   </div>
@@ -1116,18 +1116,32 @@
       }
       
       configs.forEach((config, index) => {
-        const serverConfig = parseConfigUrl(config);
-        if (!serverConfig) return;
-        
-        const option = document.createElement('option');
-        option.value = index;
-        option.textContent = formatServerName(serverConfig);
-        
-        if (index === selectedServerIndex) {
-          option.selected = true;
+        // Check if config is an object with name and url properties (new format)
+        if (config.name && config.url) {
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = config.name;
+          
+          if (index === selectedServerIndex) {
+            option.selected = true;
+          }
+          
+          serverSelect.appendChild(option);
+        } else {
+          // Handle old format (direct VLESS/VMess URLs)
+          const serverConfig = parseConfigUrl(config);
+          if (!serverConfig) return;
+          
+          const option = document.createElement('option');
+          option.value = index;
+          option.textContent = formatServerName(serverConfig);
+          
+          if (index === selectedServerIndex) {
+            option.selected = true;
+          }
+          
+          serverSelect.appendChild(option);
         }
-        
-        serverSelect.appendChild(option);
       });
     }
     
@@ -1169,12 +1183,30 @@
         selectedServerIndex = index;
         connectButton.disabled = false;
         
-        const serverConfig = parseConfigUrl(configs[index]);
-        updateServerDetails(serverConfig);
+        const config = configs[index];
         
-        if (!isConnected) {
-          connectionStatus.textContent = 'Ready to connect';
-          connectionStatusName.textContent = formatServerName(serverConfig);
+        // Check if config is an object with name and url properties (new format)
+        if (config.name && config.url) {
+          // For new format, just show the server name
+          const serverDetails = {
+            add: config.name
+          };
+          
+          updateServerDetails(serverDetails);
+          
+          if (!isConnected) {
+            connectionStatus.textContent = 'Ready to connect';
+            connectionStatusName.textContent = config.name;
+          }
+        } else {
+          // Handle old format (direct VLESS/VMess URLs)
+          const serverConfig = parseConfigUrl(config);
+          updateServerDetails(serverConfig);
+          
+          if (!isConnected) {
+            connectionStatus.textContent = 'Ready to connect';
+            connectionStatusName.textContent = formatServerName(serverConfig);
+          }
         }
       } else {
         selectedServerIndex = -1;
@@ -1191,7 +1223,15 @@
       if (isConnected) {
         window.vpn.disconnect();
       } else if (selectedServerIndex >= 0) {
-        window.vpn.connect(selectedServerIndex);
+        // Handle both old and new config formats
+        const config = configs[selectedServerIndex];
+        if (config.name && config.url) {
+          // New format with name and url properties
+          window.vpn.connectWithUrl(config.url);
+        } else {
+          // Old format (direct VLESS/VMess URLs)
+          window.vpn.connect(selectedServerIndex);
+        }
       }
     }
     
@@ -1228,4 +1268,4 @@
     document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
-</html> 
+</html>

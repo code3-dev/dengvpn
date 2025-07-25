@@ -10,6 +10,9 @@ contextBridge.exposeInMainWorld('vpn', {
   connect: (serverIndex) => {
     ipcRenderer.send('connect-vpn', serverIndex);
   },
+  connectWithUrl: (configUrl) => {
+    ipcRenderer.send('connect-vpn-url', configUrl);
+  },
   disconnect: () => {
     ipcRenderer.send('disconnect-vpn');
   },
