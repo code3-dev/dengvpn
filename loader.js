@@ -47,9 +47,42 @@ if (!isDev && !fs.existsSync(mainPath)) {
   mainPath = path.join(__dirname, 'main.js');
 }
 
+// Additional check for packaged app - try alternative paths
+if (!isDev && !fs.existsSync(mainPath)) {
+  console.log('Trying alternative paths for main.js...');
+  // Try loading main.js directly from app root in packaged app
+  const alternativePaths = [
+    path.join(__dirname, 'main.js'),
+    path.join(process.resourcesPath, 'app.asar', 'main.js'),
+    path.join(process.resourcesPath, 'app.asar.unpacked', 'main.js')
+  ];
+  
+  for (const altPath of alternativePaths) {
+    if (fs.existsSync(altPath)) {
+      mainPath = altPath;
+      console.log(`Found main.js at alternative path: ${mainPath}`);
+      break;
+    }
+  }
+}
+
 // Check if the file exists
 if (!fs.existsSync(mainPath)) {
   console.error(`Error: Main file not found at ${mainPath}`);
+  
+  // List available files for debugging
+  try {
+    const files = fs.readdirSync(__dirname);
+    console.log('Files in app directory:', files);
+    
+    if (fs.existsSync(path.join(__dirname, 'dist'))) {
+      const distFiles = fs.readdirSync(path.join(__dirname, 'dist'));
+      console.log('Files in dist directory:', distFiles);
+    }
+  } catch (err) {
+    console.log('Could not list directory contents:', err);
+  }
+  
   app.quit();
 }
 

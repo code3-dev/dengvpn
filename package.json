@@ -47,7 +47,9 @@
       "node_modules/**/*",
       "assets/**/*",
       "loader.js",
-      "core/**/*"
+      "core/**/*",
+      "main.js",
+      "preload.js"
     ],
     "extraResources": [
       {
@@ -68,8 +70,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "assets/icon.ico",
-      "signAndEditExecutable": false
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "allowToChangeInstallationDirectory": true,
