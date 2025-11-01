@@ -1,136 +1,219 @@
-# DengVPN 🛡️
+# DengVPN
 
-<div align="center">
-  
-![DengVPN Logo](assets/icon.png)
+<p align="center">
+  <img src="assets/icon.png" alt="DengVPN Logo" width="128" height="128">
+</p>
 
-**Fast, Secure & Unlimited Free VPN Service**
+<p align="center">
+  <strong>Free & Unlimited VPN Service</strong>
+</p>
 
-*Powered by V2Ray technology | Electron-based desktop application*
+<p align="center">
+  <a href="https://github.com/code3-dev/dengvpn/releases">
+    <img src="https://img.shields.io/github/v/release/code3-dev/dengvpn?style=for-the-badge" alt="GitHub Release">
+  </a>
+  <a href="https://github.com/code3-dev/dengvpn/blob/master/LICENSE">
+    <img src="https://img.shields.io/github/license/code3-dev/dengvpn?style=for-the-badge" alt="License">
+  </a>
+  <a href="https://github.com/code3-dev/dengvpn/issues">
+    <img src="https://img.shields.io/github/issues/code3-dev/dengvpn?style=for-the-badge" alt="Issues">
+  </a>
+</p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Platform](https://img.shields.io/badge/Platform-Windows-brightgreen.svg)](https://github.com/code3-dev/dengvpn)
-[![Version](https://img.shields.io/badge/Version-1.3.0-orange.svg)](https://github.com/code3-dev/dengvpn)
+---
 
-</div>
+## 🌐 Free, Unlimited Desktop VPN Client
 
-## ✨ Overview
+DengVPN is a powerful, free, and unlimited bandwidth desktop VPN client powered by [Xray](https://github.com/XTLS/Xray-core) core and built with Electron. Enjoy secure and unrestricted internet access without any data limits.
 
-DengVPN is a sophisticated yet user-friendly desktop VPN client that leverages the powerful V2Ray protocol to provide secure, anonymous, and unrestricted internet access. Built with Electron, it offers a seamless experience with automatic configuration fetching, one-click connectivity, and real-time performance monitoring.
+### ✨ Key Features
 
-Unlike traditional VPN services that require paid subscriptions, DengVPN connects you to free public V2Ray servers that are regularly updated, ensuring reliable and continuous access without any cost.
+- ✅ **100% Free & Unlimited** bandwidth
+- 🔄 **Auto-fetches** updated VMESS configurations
+- 🖱️ **One-click** connect/disconnect
+- ⚙️ **Automatically configures** Windows system proxy
+- 📊 **Real-time connection stats** (ping, uptime)
+- 🔁 **Auto-restart** on disconnection
+- 🛡️ **Secure** with Xray core protocol
 
-## 🚀 Key Features
+---
 
-- **🆓 100% Free & Unlimited**: No subscriptions, no hidden fees, no bandwidth limitations
-- **🔄 Auto-Configuration**: Automatically fetches and updates working VMESS configurations
-- **🖱️ One-Click Connect**: Simple interface with instant connection capability
-- **⚙️ Integrated System Proxy**: Automatically configures Windows system proxy settings
-- **📊 Live Statistics**: Real-time monitoring of connection status, ping, and uptime
-- **🔒 Enhanced Privacy**: V2Ray's advanced tunneling protects your online identity
-- **🔄 Auto-Restart**: Seamlessly reconnects if connection is interrupted
-- **💻 Windows Optimized**: Specifically designed and tested for Windows environments
+## 📚 Documentation
 
-## 📥 Installation
+- [User Guide](docs/user-guide.md) - Instructions for installing and using DengVPN
+- [Technical Documentation](docs/) - Detailed information about the core architecture
+- [Development Guide](docs/development.md) - Setting up a development environment
+- [FAQ](docs/user-guide.md#faq) - Frequently asked questions
 
-### Option 1: Download Release (Recommended)
+---
 
-1. Download the latest installer from [GitHub Releases](https://github.com/code3-dev/dengvpn/releases)
-2. Run the installer and follow the on-screen instructions
-3. Launch DengVPN from your Start menu
+## 🚀 Quick Start
 
-### Option 2: Build from Source
+### Installation
+
+1. Download the latest release from [GitHub Releases](https://github.com/code3-dev/dengvpn/releases)
+2. Run the installer (`DengVPN-{version}-x64.exe`)
+3. Launch DengVPN from your desktop or start menu
+
+### Usage
+
+1. Click **Connect** to establish a VPN connection
+2. View real-time connection stats in the dashboard
+3. Click **Disconnect** to terminate the connection
+
+---
+
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    A[Electron UI] --> B[IPC Communication]
+    B --> C[Main Process]
+    C --> D[Xray Core]
+    C --> E[System Proxy]
+    F[VMESS Config URL] --> G[Config Fetcher]
+    G --> D
+```
+
+### Core Components
+
+- **Frontend Layer**: Electron-based UI for intuitive user interaction
+- **IPC Layer**: Secure bidirectional communication between renderer and main process
+- **Core Engine**: [Xray](https://github.com/XTLS/Xray-core) binary for robust VPN protocol handling
+- **Configuration Tool**: [x2j](https://github.com/code3-dev/x2j) for converting VMESS links to Xray JSON configs
+- **System Integration**: Uses `sudo-prompt` to modify system proxy settings
+
+---
+
+## 🔧 Technical Details
+
+### Core Technologies
+
+- **Framework**: [Electron](https://www.electronjs.org/) v34.0.2
+- **VPN Core**: [Xray Core](https://github.com/XTLS/Xray-core)
+- **Config Tool**: [x2j](https://github.com/code3-dev/x2j)
+- **Language**: JavaScript (CommonJS)
+- **HTTP Client**: Axios v1.8.4
+- **Build Tool**: electron-builder v26.0.12
+
+### Project Structure
+
+```
+dengvpn/
+├── assets/           # HTML templates and icons
+├── core/             # Xray binaries, config files, and PowerShell scripts
+│   ├── configs/      # Generated JSON configuration files
+│   ├── xray/         # Xray core binaries
+│   ├── x2j/          # x2j conversion tool
+│   ├── run.bat       # Xray execution script
+│   └── disable_proxy.bat  # Proxy disabling script
+├── dist/             # Compiled frontend assets
+├── docs/             # Complete documentation
+├── release/          # Generated installers
+├── loader.js         # Application entry point
+├── main.js           # Main Electron process logic
+├── preload.js        # Secure IPC preloading
+├── verify-core.js    # Core components validator
+└── obfuscate.js      # Code protection utility
+```
+
+### Core Workflow
+
+1. Application fetches VMESS configuration URL
+2. [x2j](https://github.com/code3-dev/x2j) converts VMESS to Xray JSON config
+3. [Xray](https://github.com/XTLS/Xray-core) core executes with generated config
+4. System proxy automatically configured via PowerShell scripts
+5. Real-time stats displayed in UI via IPC communication
+
+---
+
+## 🛠️ Development
+
+### Prerequisites
+
+- Node.js 22
+- npm 10+
+
+### Setup
 
 ```bash
 # Clone the repository
 git clone https://github.com/code3-dev/dengvpn.git
-
-# Navigate to project directory
 cd dengvpn
 
 # Install dependencies
 npm install
 
-# Start the application in development mode
+# Start development mode
 npm start
-
-# Build for production (creates installer in 'release' folder)
-npm run build:win
 ```
 
-## 🛠️ Architecture
-
-DengVPN operates through a multi-layered architecture:
-
-1. **Frontend Layer**: Electron-based UI for user interaction
-2. **Integration Layer**: Bidirectional IPC communication between UI and system
-3. **Core Engine**: V2Ray binary executing VPN tunneling protocols
-4. **System Integration**: Automatic proxy configuration for seamless system-wide VPN
-
-
-## 🔄 How It Works
-
-1. **Configuration Retrieval**: On startup, DengVPN fetches the latest VMESS configurations from a regularly updated repository
-2. **Connection Setup**: When you click "Connect", the application:
-   - Selects the optimal server based on availability
-   - Generates a V2Ray configuration file
-   - Launches the V2Ray process with the appropriate parameters
-3. **System Integration**: Windows proxy settings are automatically configured to route all traffic through the V2Ray tunnel
-4. **Monitoring**: The application constantly monitors connection health, providing real-time statistics
-5. **Cleanup**: When disconnecting, all processes are properly terminated and system settings are restored
-
-## 🛡️ Privacy & Security
-
-DengVPN is designed with privacy as a priority:
-
-- No logs of your browsing activity
-- No personal information collected
-- Obfuscated traffic using V2Ray's advanced protocols
-- Automatic IP masking
-
-## ⚙️ Development Commands
+### Build Commands
 
 ```bash
-# Start in development mode
-npm start
-
 # Verify core components
 npm run verify-core
 
-# Obfuscate code for protection
+# Obfuscate source code
 npm run obfuscate
 
-# Build production installer for Windows
+# Build for Windows
 npm run build:win
+
+# Build for Linux
+npm run build:linux
+
+# Full production build
+npm run build
 ```
 
-## ❓ Troubleshooting
+## 🔐 Security
 
-**Q: V2Ray fails to start**  
-A: Check if your antivirus is blocking v2ray.exe. Add an exception or temporarily disable your antivirus.
+DengVPN is designed with security in mind:
 
-**Q: Cannot connect to any server**  
-A: Your ISP might be blocking VPN connections. Try using the application on a different network.
-
-**Q: System proxy doesn't work**  
-A: Make sure you're running the application as Administrator.
-
-## 👨‍💻 Developer Contact
-
-- **Telegram**: [@h3dev](https://t.me/h3dev)
-- **Instagram**: [@h3dev.pira](https://instagram.com/h3dev.pira)
-- **Email**: h3dev.pira@gmail.com
-
-## ⚠️ Disclaimer
-
-DengVPN is provided for educational and research purposes only. Users are responsible for complying with all applicable laws and regulations regarding internet use, privacy, and data transmission in their respective countries. The developers assume no liability for any misuse of this software or any damages arising from its use.
-
-## 📜 License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
+- Uses industry-standard Xray core protocol
+- Automatic system proxy configuration
+- No data collection or telemetry
+- Open-source for community review
 
 ---
 
-<div align="center">
-  <sub>Built with ❤️ by Hossein Pira</sub>
-</div> 
+## 📦 Release Process
+
+1. Code is automatically built using GitHub Actions
+2. Windows installer is generated with electron-builder
+3. Release is published to GitHub Releases
+4. Installer is renamed to `DengVPN-{version}-x64.exe`
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+---
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+---
+
+## 🙏 Acknowledgments
+
+- [Xray Core](https://github.com/XTLS/Xray-core) - The core VPN protocol implementation
+- [x2j](https://github.com/code3-dev/x2j) - VMESS to JSON configuration converter
+- [Electron](https://www.electronjs.org/) - Cross-platform desktop application framework
+- All contributors who have helped with testing and development
+
+---
+
+<p align="center">
+  Made with ❤️ by <a href="https://github.com/code3-dev">Hossein Pira</a>
+</p>

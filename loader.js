@@ -7,7 +7,7 @@ const isDev = !app.isPackaged;
 
 // In development mode, run the original main.js
 // In production mode, run the obfuscated main.js from dist/
-const mainPath = isDev 
+let mainPath = isDev 
   ? path.join(__dirname, 'main.js')
   : path.join(__dirname, 'dist', 'main.js');
 
@@ -41,6 +41,12 @@ if (!fs.existsSync(global.__coredir)) {
   }
 }
 
+// In production, if the main.js file doesn't exist in dist, try to load it directly
+if (!isDev && !fs.existsSync(mainPath)) {
+  console.log('Obfuscated main.js not found, trying direct load...');
+  mainPath = path.join(__dirname, 'main.js');
+}
+
 // Check if the file exists
 if (!fs.existsSync(mainPath)) {
   console.error(`Error: Main file not found at ${mainPath}`);
@@ -48,4 +54,9 @@ if (!fs.existsSync(mainPath)) {
 }
 
 // Load and run the actual application code
-require(mainPath); 
+try {
+  require(mainPath);
+} catch (error) {
+  console.error('Failed to load main process:', error);
+  app.quit();
+}

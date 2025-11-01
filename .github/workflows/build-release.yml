@@ -1,0 +1,65 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build application
+      run: npm run build
+
+    - name: Get version
+      id: get_version
+      run: |
+        $version = (Get-Content package.json | ConvertFrom-Json).version
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+
+    - name: Rename Windows installer
+      run: |
+        $version = $env:VERSION
+        if (Test-Path "release\DengVPN Setup $version.exe") {
+          Rename-Item -Path "release\DengVPN Setup $version.exe" -NewName "DengVPN-$version-x64.exe"
+        }
+
+    - name: List release files
+      run: |
+        Get-ChildItem -Path release -Recurse
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dengvpn-build
+        path: release/
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: github.ref == 'refs/heads/master'
+      with:
+        tag_name: v${{ env.VERSION }}
+        name: DengVPN ${{ env.VERSION }}
+        draft: false
+        prerelease: false
+        files: |
+          release/DengVPN-${{ env.VERSION }}-x64.exe
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

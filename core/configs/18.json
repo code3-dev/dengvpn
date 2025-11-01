@@ -1,0 +1,85 @@
+{
+  "log": {
+    "access": "",
+    "error": "",
+    "loglevel": "error",
+    "dnsLog": false
+  },
+  "inbounds": [
+    {
+      "tag": "in_proxy",
+      "port": 10808,
+      "protocol": "socks",
+      "listen": "127.0.0.1",
+      "settings": {
+        "auth": "noauth",
+        "udp": true,
+        "userLevel": 8
+      }
+    }
+  ],
+  "outbounds": [
+    {
+      "tag": "proxy",
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "address": "15.204.64.211",
+            "port": 443,
+            "users": [
+              {
+                "alterId": 0,
+                "id": "03fcc618-b93d-6796-6aed-8a38c975d581",
+                "level": 8,
+                "security": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "streamSettings": {
+        "network": "ws",
+        "security": "tls",
+        "wsSettings": {
+          "headers": {
+            "Host": "kampong.org"
+          },
+          "path": "linkvws"
+        },
+        "tlsSettings": {
+          "allowInsecure": true,
+          "serverName": "kampong.org"
+        }
+      },
+      "mux": {
+        "enabled": false,
+        "concurrency": 8
+      }
+    },
+    {
+      "tag": "direct",
+      "protocol": "freedom",
+      "settings": {}
+    },
+    {
+      "tag": "blackhole",
+      "protocol": "blackhole",
+      "settings": {}
+    }
+  ],
+  "dns": {
+    "servers": [
+      "1.1.1.1",
+      "1.0.0.1",
+      "8.8.8.8",
+      "8.8.4.4"
+    ]
+  },
+  "routing": {
+    "domainStrategy": "UseIp",
+    "rules": [],
+    "balancers": []
+  },
+  "remarks": "🇺🇸 United States"
+}

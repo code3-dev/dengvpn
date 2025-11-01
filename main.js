@@ -1,7 +1,7 @@
 const { app, BrowserWindow, Menu, dialog, shell, ipcMain, nativeTheme } = require('electron');
 const path = require('path');
 const fs = require('fs');
-const { spawn, exec } = require('child_process');
+const { spawn, exec, spawnSync } = require('child_process');
 const axios = require('axios');
 
 let win;
@@ -10,10 +10,11 @@ let v2rayProcess = null;
 let isConnected = false;
 let configList = [];
 let selectedConfig = null;
-let statsInterval = null;
+let pingInterval = null;
 
 // Function to get proper resource path (works in both development and production)
 function getResourcePath(relativePath) {
+  // Handle core paths specially
   if (relativePath.startsWith('core')) {
     // Use the global core directory path
     const corePath = global.__coredir || path.join(__dirname, 'core');
@@ -23,8 +24,16 @@ function getResourcePath(relativePath) {
       return corePath;
     }
     
-    // If the path is more specific (e.g., 'core/v2ray.exe'), append to core path
-    return path.join(corePath, relativePath.replace('core/', '').replace('core\\', ''));
+    // If the path is more specific (e.g., 'core/xray.exe'), append to core path
+    // Handle both 'core/' and 'core\' separators
+    let cleanPath = relativePath.replace('core/', '').replace('core\\', '');
+    
+    // Special handling for xray files - they're in the xray subdirectory
+    if (cleanPath === 'xray.exe') {
+      return path.join(corePath, 'xray', cleanPath);
+    }
+    
+    return path.join(corePath, cleanPath);
   } else {
     // For other resources, use the normal path
     return app.isPackaged
@@ -46,19 +55,155 @@ function getPreloadPath() {
 }
 
 // Path to the xray config file
-const xrayConfigPath = path.join(getResourcePath('core'), 'config.json');
-const xrayExePath = path.join(getResourcePath('core'), 'xray.exe');
+const xrayConfigPath = path.join(getResourcePath('core'), 'xray');
+const xrayExePath = getResourcePath('core/xray.exe');
 const systemProxyBatPath = path.join(getResourcePath('core'), 'run.bat');
 const disableProxyBatPath = path.join(getResourcePath('core'), 'disable_proxy.bat');
 
 // Fetch configs from URL
 async function fetchConfigs() {
   try {
-    const response = await axios.get('https://raw.githubusercontent.com/cinemaplus-dev/irdevs/refs/heads/main/api.json');
-    const data = response.data;
+    // Clear existing configs directory
+    const configsDir = path.join(getResourcePath('core'), 'configs');
+    if (fs.existsSync(configsDir)) {
+      const files = fs.readdirSync(configsDir);
+      for (const file of files) {
+        fs.unlinkSync(path.join(configsDir, file));
+      }
+    } else {
+      fs.mkdirSync(configsDir, { recursive: true });
+    }
+
+    // Ensure xray directory exists
+    const xrayDir = path.join(getResourcePath('core'), 'xray');
+    if (!fs.existsSync(xrayDir)) {
+      fs.mkdirSync(xrayDir, { recursive: true });
+    }
+
+    // Fetch configs from the new URL
+    const response = await axios.get('https://raw.githubusercontent.com/darkvpnapp/CloudflarePlus/refs/heads/main/proxy');
+    const rawData = response.data;
     
-    // The data is now an array of objects with name and url properties
-    return data;
+    // Split by lines and filter for supported protocols
+    const lines = rawData.split('\n').filter(line => 
+      line.trim().startsWith('vless://') || 
+      line.trim().startsWith('vmess://') || 
+      line.trim().startsWith('ss://') || 
+      line.trim().startsWith('trojan://')
+    );
+    
+    const configs = [];
+    const x2jPath = path.join(getResourcePath('core'), 'x2j', 'x2j.exe');
+    
+    // Check if x2j exists
+    if (!fs.existsSync(x2jPath)) {
+      throw new Error('x2j executable not found. Please ensure x2j is properly installed in core/x2j directory.');
+    }
+    
+    // Process each config line
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      
+      try {
+        // Generate JSON filename
+        const jsonFilename = `${i + 1}.json`;
+        const jsonPath = path.join(configsDir, jsonFilename);
+        
+        // Use x2j to convert the share link to JSON
+        // We'll use spawnSync to run the x2j command
+        const { spawnSync } = require('child_process');
+        
+        // Extract the protocol type for naming
+        let protocol = 'unknown';
+        let displayName = `Server ${i + 1}`;
+        
+        if (line.startsWith('vless://')) {
+          protocol = 'vless';
+          try {
+            // Try to extract name from the URL fragment
+            const fragmentMatch = line.match(/#(.+)$/);
+            if (fragmentMatch) {
+              displayName = decodeURIComponent(fragmentMatch[1]);
+            }
+          } catch (e) {
+            // If decoding fails, use the default name
+          }
+        } else if (line.startsWith('vmess://')) {
+          protocol = 'vmess';
+          try {
+            // Try to extract name from VMess JSON
+            const base64Data = line.replace('vmess://', '');
+            const jsonData = JSON.parse(Buffer.from(base64Data, 'base64').toString('utf8'));
+            if (jsonData.ps) {
+              displayName = jsonData.ps;
+            }
+          } catch (e) {
+            // If parsing fails, use the default name
+          }
+        } else if (line.startsWith('ss://')) {
+          protocol = 'shadowsocks';
+          try {
+            // Try to extract name from the URL fragment
+            const fragmentMatch = line.match(/#(.+)$/);
+            if (fragmentMatch) {
+              displayName = decodeURIComponent(fragmentMatch[1]);
+            }
+          } catch (e) {
+            // If decoding fails, use the default name
+          }
+        } else if (line.startsWith('trojan://')) {
+          protocol = 'trojan';
+          try {
+            // Try to extract name from the URL fragment
+            const fragmentMatch = line.match(/#(.+)$/);
+            if (fragmentMatch) {
+              displayName = decodeURIComponent(fragmentMatch[1]);
+            }
+          } catch (e) {
+            // If decoding fails, use the default name
+          }
+        }
+        
+        // Run x2j to convert the share link to JSON with port 10808
+        const x2jResult = spawnSync(x2jPath, ['-u', line, '-o', jsonPath, '-p', '10808'], {
+          cwd: path.dirname(x2jPath),
+          timeout: 10000 // 10 second timeout
+        });
+        
+        if (x2jResult.error) {
+          console.error(`Error running x2j for config ${i + 1}:`, x2jResult.error);
+          continue;
+        }
+        
+        if (x2jResult.status !== 0) {
+          console.error(`x2j failed for config ${i + 1}:`, x2jResult.stderr.toString());
+          continue;
+        }
+        
+        // Check if the JSON file was created
+        if (!fs.existsSync(jsonPath)) {
+          console.error(`JSON file not created for config ${i + 1}`);
+          continue;
+        }
+        
+        // Add to configs array
+        configs.push({
+          name: displayName,
+          protocol: protocol,
+          url: line,
+          jsonFile: jsonPath
+        });
+        
+        console.log(`Processed config ${i + 1}: ${displayName} (${protocol})`);
+      } catch (error) {
+        console.error(`Error processing config line ${i + 1}:`, error);
+        continue;
+      }
+    }
+    
+    console.log(`Successfully processed ${configs.length} configs`);
+    return configs;
     
   } catch (error) {
     console.error('Error fetching configs:', error);
@@ -183,10 +328,10 @@ function createWindow() {
   }
 
   win = new BrowserWindow({
-    minWidth: 650,
-    minHeight: 500,
-    width: 900,
-    height: 650,
+    minWidth: 840,
+    minHeight: 630,
+    width: 840,
+    height: 630,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       nodeIntegration: false,
@@ -198,8 +343,7 @@ function createWindow() {
     center: true,
   });
   
-  win.maximize();
-  win.loadFile(getAssetPath('index.html'));
+  win.loadFile(getAssetPath('ui.html'));
 
   const menuTemplate = [
     {
@@ -242,6 +386,23 @@ function createWindow() {
             ipInfoWindow.loadURL('https://nextjs-ip.netlify.app/');
             ipInfoWindow.setMenuBarVisibility(false);
           }
+        },
+        {
+          label: 'Speed Test',
+          click: () => {
+            const speedTestWindow = new BrowserWindow({
+              width: 1000,
+              height: 700,
+              parent: win,
+              icon: getAssetPath('icon.png'),
+              webPreferences: {
+                nodeIntegration: false,
+                contextIsolation: true
+              }
+            });
+            speedTestWindow.loadURL('https://trevor.speedtestcustom.com/');
+            speedTestWindow.setMenuBarVisibility(false);
+          }
         }
       ]
     },
@@ -254,7 +415,7 @@ function createWindow() {
             dialog.showMessageBox(win, {
               type: 'info',
               title: 'About DengVPN',
-              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.3.0\nUsing Xray Core`,
+              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.4.0\nUsing Xray Core`,
               buttons: ['OK'],
             });
           }
@@ -380,15 +541,15 @@ function showMissingCoreFilesError() {
   dialog.showErrorBox(
     'Missing Core Files',
     'The required Xray core files were not found.\n\n' +
-    'Please make sure you have the following files in the "core" folder:\n' +
+    'Please make sure you have the following files in the "core/xray" folder:\n' +
     '- xray.exe\n' +
-    '- geoip.dat\n' +
-    '- geosite.dat\n\n' +
-    'You can download the Xray core files from the official website and place them in the core directory.'
+    'You can download the Xray core files from the official website and place them in the core/xray directory.'
   );
 }
 
 function startV2ray(configUrl) {
+  console.log(`startV2ray called with configUrl: ${configUrl}`);
+  
   if (v2rayProcess) {
     stopV2ray();
   }
@@ -400,13 +561,16 @@ function startV2ray(configUrl) {
       throw new Error(`Xray executable not found at: ${xrayExePath}`);
     }
 
-    // Fetch the config from the URL
-    axios.get(configUrl).then(response => {
-      // Write the config directly to the config.json file
-      fs.writeFileSync(xrayConfigPath, JSON.stringify(response.data, null, 2));
+    // Check if configUrl is a local file path (JSON file from our configs directory)
+    if (configUrl.endsWith('.json') && fs.existsSync(configUrl)) {
+      // Use the specific config file directly with the exact path format
+      // ./xray.exe --config ../configs/{id}.json
+      const relativeConfigPath = path.relative(path.dirname(xrayExePath), configUrl).replace(/\\/g, '/');
       
-      // Start Xray process with the config file
-      v2rayProcess = spawn(xrayExePath, ['-config', xrayConfigPath], { cwd: path.dirname(xrayExePath) });
+      console.log(`Starting Xray with config: ${relativeConfigPath}`);
+      
+      // Start Xray process with the specific config file
+      v2rayProcess = spawn(xrayExePath, ['--config', relativeConfigPath], { cwd: path.dirname(xrayExePath) });
       
       v2rayProcess.stdout.on('data', (data) => {
         console.log(`Xray stdout: ${data}`);
@@ -420,7 +584,10 @@ function startV2ray(configUrl) {
         console.log(`Xray process exited with code ${code}`);
         isConnected = false;
         win.webContents.send('connection-status', false);
-        clearInterval(statsInterval);
+        if (pingInterval) {
+          clearInterval(pingInterval);
+          pingInterval = null;
+        }
       });
       
       isConnected = true;
@@ -428,14 +595,49 @@ function startV2ray(configUrl) {
       
       // Set system proxy
       setSystemProxy();
-      
-      // Start sending real-time stats
-      startSendingStats();
-    }).catch(error => {
-      console.error('Error fetching config from URL:', error);
-      dialog.showErrorBox('Config Error', 'Failed to fetch configuration from URL: ' + error.message);
-    });
-
+    } else if (configUrl.startsWith('http://') || configUrl.startsWith('https://')) {
+      // For HTTP/HTTPS URLs
+      console.log(`Fetching config from URL: ${configUrl}`);
+      axios.get(configUrl).then(response => {
+        fs.writeFileSync(xrayConfigPath, JSON.stringify(response.data, null, 2));
+        
+        // Start Xray process with the default config file
+        v2rayProcess = spawn(xrayExePath, ['--config'], { cwd: path.dirname(xrayExePath) });
+        
+        v2rayProcess.stdout.on('data', (data) => {
+          console.log(`Xray stdout: ${data}`);
+        });
+        
+        v2rayProcess.stderr.on('data', (data) => {
+          console.error(`Xray stderr: ${data}`);
+        });
+        
+        v2rayProcess.on('close', (code) => {
+          console.log(`Xray process exited with code ${code}`);
+          isConnected = false;
+          win.webContents.send('connection-status', false);
+          if (pingInterval) {
+            clearInterval(pingInterval);
+            pingInterval = null;
+          }
+        });
+        
+        isConnected = true;
+        win.webContents.send('connection-status', true);
+        
+        // Set system proxy
+        setSystemProxy();
+      }).catch(error => {
+        console.error('Error fetching config from URL:', error);
+        dialog.showErrorBox('Config Error', 'Failed to fetch configuration from URL: ' + error.message);
+        isConnected = false;
+        win.webContents.send('connection-status', false);
+      });
+    } else {
+      // Unsupported config format
+      console.log(`Error: Unsupported config format: ${configUrl}`);
+      throw new Error(`Unsupported config format: ${configUrl}`);
+    }
     
   } catch (error) {
     console.error('Error starting Xray:', error);
@@ -446,7 +648,11 @@ function startV2ray(configUrl) {
 }
 
 function stopV2ray() {
-  clearInterval(statsInterval);
+  // Clear ping interval when disconnecting
+  if (pingInterval) {
+    clearInterval(pingInterval);
+    pingInterval = null;
+  }
   
   if (v2rayProcess) {
     // Disable system proxy before killing the process
@@ -459,115 +665,57 @@ function stopV2ray() {
   }
 }
 
-// Function to simulate ping
-async function measurePing(host) {
-  if (!host) return null;
+// Function to measure ping to Google's connectivity check
+async function measurePing() {
+  if (!isConnected || !win) return;
   
   try {
-    const start = Date.now();
-    
-    // Using axios to measure ping time
-    await axios.get(`http://${host}`, { 
+    const startTime = Date.now();
+    // Using axios with a short timeout to measure ping
+    await axios.get('https://www.gstatic.com/generate_204', { 
       timeout: 5000,
       validateStatus: () => true // Accept any status code
-    }).catch(() => {
-      // Catch network errors but don't fail
     });
+    const endTime = Date.now();
+    const pingTime = endTime - startTime;
     
-    const pingTime = Date.now() - start;
-    return Math.min(pingTime, 500); // Cap to reasonable value
+    // Send ping to renderer
+    win.webContents.send('connection-stats', {
+      ping: pingTime,
+      download: null,
+      upload: null
+    });
   } catch (error) {
-    // Return a reasonable simulated value on failure
-    return Math.floor(Math.random() * 100) + 50;
+    console.error('Ping error:', error);
+    // Send error ping to renderer
+    win.webContents.send('connection-stats', {
+      ping: -1, // Indicate error
+      download: null,
+      upload: null
+    });
   }
 }
 
-// Function to start sending real-time stats to the renderer
-function startSendingStats() {
-  // Stop any existing interval
-  if (statsInterval) {
-    clearInterval(statsInterval);
+// Function to start ping interval
+function startPingInterval() {
+  // Clear any existing interval
+  if (pingInterval) {
+    clearInterval(pingInterval);
   }
   
-  // Send initial stats
-  sendConnectionStats();
+  // Start new interval to ping every 5 seconds
+  pingInterval = setInterval(measurePing, 5000);
   
-  // Set up interval for regular updates (every 2 seconds)
-  statsInterval = setInterval(sendConnectionStats, 2000);
+  // Also do an initial ping
+  setTimeout(measurePing, 100);
 }
 
 // Function to get and send connection statistics
 async function sendConnectionStats() {
   if (!isConnected || !win) return;
   
-  try {
-    // Get server from config
-    let host = null;
-    if (selectedConfig) {
-      try {
-        // Try to extract host from the config file
-        const configData = fs.readFileSync(xrayConfigPath, 'utf8');
-        const config = JSON.parse(configData);
-        
-        // Extract host from outbounds if available - handle different config formats
-        if (config.outbounds && config.outbounds.length > 0) {
-          const outbound = config.outbounds[0];
-          
-          if (outbound.settings && outbound.settings.vnext && outbound.settings.vnext.length > 0) {
-            // Standard V2Ray/Xray config format
-            host = outbound.settings.vnext[0].address;
-          } else if (outbound.settings && outbound.settings.servers && outbound.settings.servers.length > 0) {
-            // Alternative format (e.g., for Shadowsocks)
-            host = outbound.settings.servers[0].address;
-          } else if (outbound.server) {
-            // Simple format
-            host = outbound.server;
-          }
-        }
-        
-        // If we couldn't get host from config, try to extract from selectedConfig
-        if (!host && selectedConfig) {
-          if (selectedConfig.url && typeof selectedConfig.url === 'string') {
-            // Try to extract host from URL
-            const urlMatch = selectedConfig.url.match(/(?:https?:\/\/)?([^:\/\s]+)/);
-            if (urlMatch && urlMatch[1]) {
-              host = urlMatch[1];
-            }
-          } else if (selectedConfig.add) {
-            // Old format parsed config
-            host = selectedConfig.add;
-          }
-        }
-      } catch (error) {
-        console.error('Error parsing config for stats:', error);
-      }
-    }
-    
-    // If we couldn't determine the host, use a default
-    if (!host) {
-      host = '1.1.1.1'; // Fallback to Cloudflare DNS
-    }
-    
-    // Measure ping
-    const ping = await measurePing(host);
-    
-    // Simulate download/upload speeds
-    // These would ideally be measured from actual traffic
-    let downloadSpeed = Math.random() * 5 + (Math.random() > 0.7 ? Math.random() * 5 : 0);
-    let uploadSpeed = Math.random() * 2 + (Math.random() > 0.6 ? Math.random() * 1 : 0);
-    
-    // Add some variation over time to make it look more realistic
-    const stats = {
-      ping: ping,
-      download: downloadSpeed.toFixed(2),
-      upload: uploadSpeed.toFixed(2)
-    };
-    
-    // Send to renderer
-    win.webContents.send('connection-stats', stats);
-  } catch (error) {
-    console.error('Error sending connection stats:', error);
-  }
+  // Just trigger a ping measurement
+  measurePing();
 }
 
 // Function to check if core directory exists and contains required files
@@ -579,8 +727,9 @@ function checkCoreDirectory() {
     return false;
   }
   
-  const requiredFiles = ['xray.exe', 'geoip.dat', 'geosite.dat'];
-  const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(corePath, file)));
+  // Check for files in the xray subdirectory
+  const requiredFiles = ['xray.exe'];
+  const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(corePath, 'xray', file)));
   
   if (missingFiles.length > 0) {
     console.error('Missing core files:', missingFiles);
@@ -600,14 +749,14 @@ function selectCoreDirectory() {
       if (!result.canceled && result.filePaths.length > 0) {
         const selectedDir = result.filePaths[0];
         
-        // Check if the selected directory has the required files
-        const requiredFiles = ['xray.exe', 'geoip.dat', 'geosite.dat'];
-        const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(selectedDir, file)));
+        // Check if the selected directory has the required files in the xray subdirectory
+        const requiredFiles = ['xray.exe'];
+        const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(selectedDir, 'xray', file)));
         
         if (missingFiles.length > 0) {
           dialog.showErrorBox(
             'Invalid Core Directory', 
-            `The selected directory is missing these required files: ${missingFiles.join(', ')}`
+            `The selected directory is missing these required files in the xray subdirectory: ${missingFiles.join(', ')}`
           );
           resolve(false);
         } else {
@@ -628,9 +777,16 @@ function selectCoreDirectory() {
 // Function to ensure core files exist by copying from backup location if needed
 function ensureCoreFiles() {
   const corePath = getResourcePath('core');
+  const xrayPath = path.join(corePath, 'xray');
+  
   if (!fs.existsSync(corePath)) {
     fs.mkdirSync(corePath, { recursive: true });
     console.log('Created core directory:', corePath);
+  }
+  
+  if (!fs.existsSync(xrayPath)) {
+    fs.mkdirSync(xrayPath, { recursive: true });
+    console.log('Created xray directory:', xrayPath);
   }
 
   // Check for common backup locations where core files might be found
@@ -640,8 +796,8 @@ function ensureCoreFiles() {
     path.join(app.getPath('documents'), 'DengVPN', 'core')
   ];
 
-  const requiredFiles = ['xray.exe', 'geoip.dat', 'geosite.dat'];
-  const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(corePath, file)));
+  const requiredFiles = ['xray.exe'];
+  const missingFiles = requiredFiles.filter(file => !fs.existsSync(path.join(xrayPath, file)));
 
   if (missingFiles.length > 0) {
     console.log('Missing core files:', missingFiles);
@@ -651,9 +807,13 @@ function ensureCoreFiles() {
       if (fs.existsSync(backupLoc)) {
         console.log('Found backup location:', backupLoc);
         
+        // Also check for xray subdirectory in backup location
+        const backupXrayPath = path.join(backupLoc, 'xray');
+        const actualBackupPath = fs.existsSync(backupXrayPath) ? backupXrayPath : backupLoc;
+        
         for (const file of missingFiles) {
-          const backupFile = path.join(backupLoc, file);
-          const targetFile = path.join(corePath, file);
+          const backupFile = path.join(actualBackupPath, file);
+          const targetFile = path.join(xrayPath, file);
           
           if (fs.existsSync(backupFile)) {
             try {
@@ -666,7 +826,34 @@ function ensureCoreFiles() {
         }
         
         // Check if we've resolved all missing files
-        const stillMissing = requiredFiles.filter(file => !fs.existsSync(path.join(corePath, file)));
+        const stillMissing = requiredFiles.filter(file => !fs.existsSync(path.join(xrayPath, file)));
+        if (stillMissing.length === 0) {
+          console.log('All core files restored from backup');
+          return true;
+        }
+      }
+      
+      // Also check for xray subdirectory in backup location
+      const backupXrayLoc = path.join(backupLoc, 'xray');
+      if (fs.existsSync(backupXrayLoc)) {
+        console.log('Found backup xray location:', backupXrayLoc);
+        
+        for (const file of missingFiles) {
+          const backupFile = path.join(backupXrayLoc, file);
+          const targetFile = path.join(xrayPath, file);
+          
+          if (fs.existsSync(backupFile)) {
+            try {
+              fs.copyFileSync(backupFile, targetFile);
+              console.log(`Copied ${file} from backup`);
+            } catch (err) {
+              console.error(`Failed to copy ${file}:`, err);
+            }
+          }
+        }
+        
+        // Check if we've resolved all missing files
+        const stillMissing = requiredFiles.filter(file => !fs.existsSync(path.join(xrayPath, file)));
         if (stillMissing.length === 0) {
           console.log('All core files restored from backup');
           return true;
@@ -684,8 +871,14 @@ function ensureCoreFiles() {
 // Function to download Xray core files from GitHub
 async function downloadCoreFiles() {
   const corePath = getResourcePath('core');
+  const xrayPath = path.join(corePath, 'xray');
+  
   if (!fs.existsSync(corePath)) {
     fs.mkdirSync(corePath, { recursive: true });
+  }
+  
+  if (!fs.existsSync(xrayPath)) {
+    fs.mkdirSync(xrayPath, { recursive: true });
   }
   
   // Show download dialog
@@ -704,11 +897,9 @@ async function downloadCoreFiles() {
     title: 'Manual Download Required',
     message: 'Please download the Xray core files from the official repository: https://github.com/XTLS/Xray-core/releases\n\n' + 
     'Extract the files and place them in the following directory:\n' + 
-    corePath + '\n\n' +
+    xrayPath + '\n\n' +
     'Required files:\n' +
-    '- xray.exe\n' +
-    '- geoip.dat\n' +
-    '- geosite.dat',
+    '- xray.exe\n',
     buttons: ['OK']
   });
   
@@ -720,6 +911,7 @@ app.whenReady().then(async () => {
   
   // Debug info: Verify core directory exists
   const corePath = getResourcePath('core');
+  const xrayPath = path.join(corePath, 'xray');
   console.log('========== Core Path Debug Info ==========');
   console.log('Is packaged:', app.isPackaged);
   console.log('App path:', app.getAppPath());
@@ -727,12 +919,13 @@ app.whenReady().then(async () => {
   console.log('Global core directory:', global.__coredir);
   console.log('Resource path:', process.resourcesPath);
   console.log('Core directory path:', corePath);
+  console.log('Xray directory path:', xrayPath);
   console.log('xray.exe path:', xrayExePath);
-  console.log('config.json path:', xrayConfigPath);
   console.log('run.bat path:', systemProxyBatPath);
   
   // Check if paths exist
   console.log('Core path exists:', fs.existsSync(corePath));
+  console.log('Xray path exists:', fs.existsSync(xrayPath));
   console.log('xray.exe exists:', fs.existsSync(xrayExePath));
   console.log('=========================================');
   
@@ -808,22 +1001,95 @@ ipcMain.on('open-external', (event, url) => {
 });
 
 ipcMain.on('connect-vpn', (event, configIndex) => {
+  console.log(`Connect VPN request received for index: ${configIndex}`);
   if (configList[configIndex]) {
     selectedConfig = configList[configIndex];
-    // Handle both old and new config formats
-    if (selectedConfig.url) {
-      // New format with url property
-      startV2ray(selectedConfig.url);
+    console.log(`Selected config:`, selectedConfig);
+    
+    // Handle the new config format with local JSON file
+    if (selectedConfig.jsonFile) {
+      // New format with local JSON file - this is what we want
+      console.log(`Starting Xray with local JSON file: ${selectedConfig.jsonFile}`);
+      startV2ray(selectedConfig.jsonFile);
+      
+      // Start ping interval after successful connection
+      setTimeout(() => {
+        if (isConnected) {
+          startPingInterval();
+        }
+      }, 2000);
+    } else if (selectedConfig.url) {
+      // Old format with URL property - check if it's a share link or JSON URL
+      console.log(`Starting Xray with URL: ${selectedConfig.url}`);
+      if (selectedConfig.url.startsWith('vless://') || 
+          selectedConfig.url.startsWith('vmess://') || 
+          selectedConfig.url.startsWith('ss://') || 
+          selectedConfig.url.startsWith('trojan://')) {
+        // This is a share link, we need to convert it to JSON first
+        // For now, we'll show an error since we should be using the pre-converted JSON files
+        console.log('Error: Share link detected, showing error dialog');
+        dialog.showErrorBox('Connection Error', 'This configuration format is not supported. Please refresh the server list.');
+      } else {
+        // This should be a JSON config URL
+        startV2ray(selectedConfig.url);
+        
+        // Start ping interval after successful connection
+        setTimeout(() => {
+          if (isConnected) {
+            startPingInterval();
+          }
+        }, 2000);
+      }
     } else {
-      // Old format (direct VLESS/VMess URLs)
-      startV2ray(selectedConfig);
+      // Direct config string - this should be a share link
+      // We need to convert it to JSON first
+      console.log(`Starting Xray with direct config: ${selectedConfig}`);
+      if (typeof selectedConfig === 'string' && 
+          (selectedConfig.startsWith('vless://') || 
+           selectedConfig.startsWith('vmess://') || 
+           selectedConfig.startsWith('ss://') || 
+           selectedConfig.startsWith('trojan://'))) {
+        // This is a share link, we need to convert it to JSON first
+        // For now, we'll show an error since we should be using the pre-converted JSON files
+        console.log('Error: Direct share link detected, showing error dialog');
+        dialog.showErrorBox('Connection Error', 'This configuration format is not supported. Please refresh the server list.');
+      } else {
+        startV2ray(selectedConfig);
+        
+        // Start ping interval after successful connection
+        setTimeout(() => {
+          if (isConnected) {
+            startPingInterval();
+          }
+        }, 2000);
+      }
     }
+  } else {
+    console.log(`Error: Config at index ${configIndex} not found`);
   }
 });
 
 ipcMain.on('connect-vpn-url', (event, configUrl) => {
   // Direct connection using config URL
-  startV2ray(configUrl);
+  // Check if it's a share link or a JSON URL
+  if (configUrl.startsWith('vless://') || 
+      configUrl.startsWith('vmess://') || 
+      configUrl.startsWith('ss://') || 
+      configUrl.startsWith('trojan://')) {
+    // This is a share link, we need to convert it to JSON first
+    // For now, we'll show an error since we should be using the pre-converted JSON files
+    dialog.showErrorBox('Connection Error', 'Direct share link connections are not supported. Please refresh the server list.');
+  } else {
+    // This should be a JSON config URL
+    startV2ray(configUrl);
+    
+    // Start ping interval after successful connection
+    setTimeout(() => {
+      if (isConnected) {
+        startPingInterval();
+      }
+    }, 2000);
+  }
 });
 
 ipcMain.on('disconnect-vpn', () => {
