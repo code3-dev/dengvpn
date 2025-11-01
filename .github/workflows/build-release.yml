@@ -26,8 +26,8 @@ jobs:
 
     - name: Build application
       run: npm run build:win
-      env:
-        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # env:
+        # CSC_IDENTITY_AUTO_DISCOVERY: false
 
     - name: Get version
       id: get_version

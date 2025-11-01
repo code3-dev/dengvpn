@@ -68,8 +68,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "assets/icon.ico",
-      "sign": "./sign.js"
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "allowToChangeInstallationDirectory": true,
