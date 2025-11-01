@@ -26,6 +26,8 @@ jobs:
 
     - name: Build application
       run: npm run build
+      env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Get version
       id: get_version
