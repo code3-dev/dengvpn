@@ -15,7 +15,7 @@ let mainPath = isDev
 global.__basedir = __dirname;
 global.__assetsdir = isDev
   ? path.join(__dirname, 'assets')
-  : path.join(__dirname, 'dist', 'assets');
+  : path.join(process.resourcesPath, 'assets');
 
 // Define global variable for core directory path
 global.__coredir = isDev

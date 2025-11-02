@@ -547,10 +547,10 @@ function showMissingCoreFilesError() {
   );
 }
 
-function startV2ray(configUrl) {
-  console.log(`startV2ray called with configUrl: ${configUrl}`);
+function startV2ray(configUrl, isSwitching = false) {
+  console.log(`startV2ray called with configUrl: ${configUrl}, isSwitching: ${isSwitching}`);
   
-  if (v2rayProcess) {
+  if (v2rayProcess && !isSwitching) {
     stopV2ray();
   }
 
@@ -582,19 +582,32 @@ function startV2ray(configUrl) {
       
       v2rayProcess.on('close', (code) => {
         console.log(`Xray process exited with code ${code}`);
-        isConnected = false;
-        win.webContents.send('connection-status', false);
+        // Only set isConnected to false and send disconnect status if we're not switching servers
+        if (!global.isSwitching) {
+          isConnected = false;
+          win.webContents.send('connection-status', false);
+        }
         if (pingInterval) {
           clearInterval(pingInterval);
           pingInterval = null;
         }
       });
       
+      // Set the global switching flag
+      global.isSwitching = isSwitching;
+      
       isConnected = true;
       win.webContents.send('connection-status', true);
       
-      // Set system proxy
-      setSystemProxy();
+      // Set system proxy only if not switching servers
+      if (!isSwitching) {
+        setSystemProxy();
+      } else {
+        // Reset the switching flag after a short delay to ensure the previous process has fully closed
+        setTimeout(() => {
+          global.isSwitching = false;
+        }, 100);
+      }
     } else if (configUrl.startsWith('http://') || configUrl.startsWith('https://')) {
       // For HTTP/HTTPS URLs
       console.log(`Fetching config from URL: ${configUrl}`);
@@ -625,8 +638,10 @@ function startV2ray(configUrl) {
         isConnected = true;
         win.webContents.send('connection-status', true);
         
-        // Set system proxy
-        setSystemProxy();
+        // Set system proxy only if not switching servers
+        if (!isSwitching) {
+          setSystemProxy();
+        }
       }).catch(error => {
         console.error('Error fetching config from URL:', error);
         dialog.showErrorBox('Config Error', 'Failed to fetch configuration from URL: ' + error.message);
@@ -647,7 +662,7 @@ function startV2ray(configUrl) {
   }
 }
 
-function stopV2ray() {
+function stopV2ray(keepProxy = false) {
   // Clear ping interval when disconnecting
   if (pingInterval) {
     clearInterval(pingInterval);
@@ -655,13 +670,61 @@ function stopV2ray() {
   }
   
   if (v2rayProcess) {
-    // Disable system proxy before killing the process
-    disableSystemProxy();
+    // Disable system proxy before killing the process, unless we're keeping it
+    if (!keepProxy) {
+      disableSystemProxy();
+    }
     
     v2rayProcess.kill();
     v2rayProcess = null;
     isConnected = false;
-    win.webContents.send('connection-status', false);
+    if (win) {
+      win.webContents.send('connection-status', false);
+    }
+  }
+}
+
+// Add a function to switch servers without full disconnect/connect cycle
+function switchServer(newConfigIndex) {
+  console.log(`Switching server to index: ${newConfigIndex}`);
+  
+  // Don't call stopV2ray here, just kill the process directly
+  if (v2rayProcess) {
+    v2rayProcess.kill();
+    v2rayProcess = null;
+  }
+  
+  // Set the new selected config
+  if (configList[newConfigIndex]) {
+    selectedConfig = configList[newConfigIndex];
+    console.log(`New selected config:`, selectedConfig);
+    
+    // Handle the new config format with local JSON file
+    if (selectedConfig.jsonFile) {
+      // New format with local JSON file - this is what we want
+      console.log(`Starting Xray with local JSON file: ${selectedConfig.jsonFile}`);
+      startV2ray(selectedConfig.jsonFile, true); // true indicates server switching
+    } else if (selectedConfig.url) {
+      // Old format with URL property
+      console.log(`Starting Xray with URL: ${selectedConfig.url}`);
+      if (selectedConfig.url.startsWith('vless://') || 
+          selectedConfig.url.startsWith('vmess://') || 
+          selectedConfig.url.startsWith('ss://') || 
+          selectedConfig.url.startsWith('trojan://')) {
+        // This is a share link, we need to convert it to JSON first
+        console.log('Error: Share link detected, showing error dialog');
+        dialog.showErrorBox('Connection Error', 'This configuration format is not supported. Please refresh the server list.');
+      } else {
+        // This should be a JSON config URL
+        startV2ray(selectedConfig.url, true); // true indicates server switching
+      }
+    }
+  } else {
+    console.log(`Error: Config at index ${newConfigIndex} not found`);
+    // Send connection status false if config not found
+    if (win) {
+      win.webContents.send('connection-status', false);
+    }
   }
 }
 
@@ -1002,6 +1065,14 @@ ipcMain.on('open-external', (event, url) => {
 
 ipcMain.on('connect-vpn', (event, configIndex) => {
   console.log(`Connect VPN request received for index: ${configIndex}`);
+  
+  // If already connected, this is a server switch
+  if (isConnected && selectedConfig) {
+    console.log('Switching server instead of connecting');
+    switchServer(configIndex);
+    return;
+  }
+  
   if (configList[configIndex]) {
     selectedConfig = configList[configIndex];
     console.log(`Selected config:`, selectedConfig);
@@ -1118,19 +1189,3 @@ app.on('will-quit', () => {
   }
   stopV2ray();
 });
-
-// Helper function to compare version strings
-function compareVersions(v1, v2) {
-  const parts1 = v1.split('.').map(Number);
-  const parts2 = v2.split('.').map(Number);
-  
-  for (let i = 0; i < 3; i++) {
-    const part1 = parts1[i] || 0;
-    const part2 = parts2[i] || 0;
-    
-    if (part1 > part2) return 1;
-    if (part1 < part2) return -1;
-  }
-  
-  return 0;
-}

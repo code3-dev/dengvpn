@@ -633,6 +633,25 @@
       }
     }
 
+    // Handle server selection change
+    function handleServerChange(index) {
+      if (index >= 0) {
+        selectServer(index);
+        
+        // If already connected, switch to the new server immediately
+        if (isConnected) {
+          const config = configs[index];
+          if (config.name && config.url && !config.jsonFile) {
+            // New format with name and url properties but no jsonFile - use URL
+            window.vpn.connectWithUrl(config.url);
+          } else {
+            // Either old format or new format with jsonFile - use index
+            window.vpn.connect(index);
+          }
+        }
+      }
+    }
+
     // Render server list in dropdown
     function renderServerList() {
       serverSelect.innerHTML = '<option value="-1">Select a server</option>';
@@ -655,9 +674,7 @@
     connectButton.addEventListener('click', toggleConnection);
     serverSelect.addEventListener('change', (e) => {
       const index = parseInt(e.target.value);
-      if (index >= 0) {
-        selectServer(index);
-      }
+      handleServerChange(index);
     });
 
     // Initialize the app
