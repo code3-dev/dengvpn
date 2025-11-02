@@ -121,4 +121,4 @@ function copyDirectory(source, destination) {
       fs.copyFileSync(sourcePath, destPath);
     }
   }
-}
+} 

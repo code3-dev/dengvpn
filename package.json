@@ -41,7 +41,6 @@
     "appId": "com.dengvpn.app",
     "productName": "DengVPN",
     "icon": "assets/icon.png",
-    "asar": true,
     "files": [
       "dist/**/*",
       "node_modules/**/*",
@@ -59,9 +58,6 @@
           "**/*"
         ]
       }
-    ],
-    "asarUnpack": [
-      "core/**/*"
     ],
     "directories": {
       "output": "release"
