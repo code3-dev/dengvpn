@@ -460,9 +460,7 @@
         </div>
         
         <!-- Connect Button -->
-        <button class="connect-button disconnected" id="connectButton" disabled>
-          Connect
-        </button>
+        <button class="connect-button disconnected" id="connectButton" disabled></button>
         
         <!-- Ping Display -->
         <div class="ping-display" id="pingDisplay">
@@ -563,28 +561,11 @@
         connectionStatusText.textContent = 'Connected';
         connectButton.classList.remove('disconnected');
         connectButton.classList.add('connected');
-        connectButton.textContent = 'Disconnect';
-        
-        // Start connection timer
-        connectionStartTime = new Date();
-        startConnectionTimer();
-        
-        // Start ping interval
-        startPingInterval();
       } else {
         connectionDot.classList.remove('connected');
         connectionStatusText.textContent = 'Disconnected';
         connectButton.classList.remove('connected');
         connectButton.classList.add('disconnected');
-        connectButton.textContent = 'Connect';
-        
-        // Stop connection timer
-        stopConnectionTimer();
-        connectionTime.textContent = 'Connection time: --:--:--';
-        
-        // Stop ping interval
-        stopPingInterval();
-        pingValue.textContent = '--';
       }
     }
 
