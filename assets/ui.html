@@ -607,13 +607,13 @@
       }
     }
 
-    // Start ping interval with optimized frequency
+    // Start ping interval with 5 second frequency
     function startPingInterval() {
       stopPingInterval();
       // Initial ping
       measurePing();
-      // Ping every 3 seconds (increased frequency for better responsiveness)
-      pingInterval = setInterval(measurePing, 3000);
+      // Ping every 5 seconds (changed from 3 seconds to 5 seconds)
+      pingInterval = setInterval(measurePing, 5000);
     }
 
     // Stop ping interval
@@ -690,6 +690,13 @@
             // Either old format or new format with jsonFile - use index
             window.vpn.connect(index);
           }
+          
+          // Reset ping value when switching servers
+          pingValue.textContent = '--';
+          currentPing = '--';
+          
+          // Restart ping interval when switching servers
+          startPingInterval();
         }
       }
     }

@@ -530,11 +530,12 @@ REM This script needs to be run as administrator
 
 REM Set proxy to localhost:10808 (V2Ray SOCKS proxy)
 reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 1 /f
-reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d "socks=127.0.0.1:10808" /f
+reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /t REG_SZ /d "127.0.0.1:10808" /f
+reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyOverride /t REG_SZ /d "<local>" /f
 
 REM Notify user
 echo Windows system proxy has been enabled.
-echo Proxy: 127.0.0.1:10808 (SOCKS)
+echo HTTP Proxy: 127.0.0.1:10808
 echo.
 echo This window will close in 3 seconds...
 timeout /t 3 > nul`;
@@ -543,7 +544,7 @@ timeout /t 3 > nul`;
         console.log(`Created system proxy BAT file at: ${systemProxyScriptPath}`);
       } else if (isLinux) {
         const runShContent = `#!/bin/bash
-# Script to set system proxy to use Xray SOCKS proxy on Linux
+# Script to set system proxy to use Xray HTTP proxy on Linux
 # This script may need to be run with sudo privileges depending on your desktop environment
 
 # Check if script is run as root
@@ -551,34 +552,37 @@ if [ "$EUID" -ne 0 ]; then
   echo "This script may need to be run with sudo privileges depending on your desktop environment"
 fi
 
-# Set proxy to localhost:10808 (Xray SOCKS proxy)
+# Set proxy to localhost:10808 (Xray HTTP proxy)
 PROXY_HOST="127.0.0.1"
 PROXY_PORT="10808"
 
 # Set system proxy for GNOME
 gsettings set org.gnome.system.proxy mode 'manual' 2>/dev/null
-gsettings set org.gnome.system.proxy.socks host "$PROXY_HOST" 2>/dev/null
-gsettings set org.gnome.system.proxy.socks port "$PROXY_PORT" 2>/dev/null
+gsettings set org.gnome.system.proxy.http host "$PROXY_HOST" 2>/dev/null
+gsettings set org.gnome.system.proxy.http port "$PROXY_PORT" 2>/dev/null
+gsettings set org.gnome.system.proxy.https host "$PROXY_HOST" 2>/dev/null
+gsettings set org.gnome.system.proxy.https port "$PROXY_PORT" 2>/dev/null
 
 # Set system proxy for KDE (if kwriteconfig5 is available)
 if command -v kwriteconfig5 &> /dev/null; then
   kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key ProxyType 1 2>/dev/null
-  kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key socksProxy "socks://$PROXY_HOST $PROXY_PORT" 2>/dev/null
+  kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpProxy "http://$PROXY_HOST $PROXY_PORT" 2>/dev/null
+  kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpsProxy "http://$PROXY_HOST $PROXY_PORT" 2>/dev/null
 fi
 
 # Also set environment variables
-export http_proxy="socks5://$PROXY_HOST:$PROXY_PORT"
-export https_proxy="socks5://$PROXY_HOST:$PROXY_PORT"
-export ftp_proxy="socks5://$PROXY_HOST:$PROXY_PORT"
-export all_proxy="socks5://$PROXY_HOST:$PROXY_PORT"
-export HTTP_PROXY="socks5://$PROXY_HOST:$PROXY_PORT"
-export HTTPS_PROXY="socks5://$PROXY_HOST:$PROXY_PORT"
-export FTP_PROXY="socks5://$PROXY_HOST:$PROXY_PORT"
-export ALL_PROXY="socks5://$PROXY_HOST:$PROXY_PORT"
+export http_proxy="http://$PROXY_HOST:$PROXY_PORT"
+export https_proxy="http://$PROXY_HOST:$PROXY_PORT"
+export ftp_proxy="http://$PROXY_HOST:$PROXY_PORT"
+export all_proxy="http://$PROXY_HOST:$PROXY_PORT"
+export HTTP_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+export HTTPS_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+export FTP_PROXY="http://$PROXY_HOST:$PROXY_PORT"
+export ALL_PROXY="http://$PROXY_HOST:$PROXY_PORT"
 
 # Notify user
 echo "Linux system proxy has been enabled."
-echo "Proxy: $PROXY_HOST:$PROXY_PORT (SOCKS5)"
+echo "HTTP Proxy: $PROXY_HOST:$PROXY_PORT"
 echo ""
 echo "This window will close in 3 seconds..."
 sleep 3`;
@@ -632,6 +636,8 @@ REM This script needs to be run as administrator
 
 REM Disable system proxy
 reg add "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyEnable /t REG_DWORD /d 0 /f
+reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyServer /f 2>nul
+reg delete "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Internet Settings" /v ProxyOverride /f 2>nul
 
 REM Notify user
 echo Windows system proxy has been disabled.
@@ -653,10 +659,16 @@ fi
 
 # Disable system proxy for GNOME
 gsettings set org.gnome.system.proxy mode 'none' 2>/dev/null
+gsettings reset org.gnome.system.proxy.http host 2>/dev/null
+gsettings reset org.gnome.system.proxy.http port 2>/dev/null
+gsettings reset org.gnome.system.proxy.https host 2>/dev/null
+gsettings reset org.gnome.system.proxy.https port 2>/dev/null
 
 # Disable system proxy for KDE (if kwriteconfig5 is available)
 if command -v kwriteconfig5 &> /dev/null; then
   kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key ProxyType 0 2>/dev/null
+  kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpProxy --delete 2>/dev/null
+  kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpsProxy --delete 2>/dev/null
 fi
 
 # Also unset environment variables that might be set
@@ -810,6 +822,9 @@ function startV2ray(configUrl, isSwitching = false) {
         global.connectionStartTime = Date.now();
       }
       
+      // Start ping interval when connection is established
+      startPingInterval();
+      
       // Set system proxy only if not switching servers
       if (!isSwitching) {
         setSystemProxy();
@@ -873,6 +888,9 @@ function startV2ray(configUrl, isSwitching = false) {
           win.webContents.send('connection-status', true);
         }
         
+        // Start ping interval when connection is established
+        startPingInterval();
+        
         // Set system proxy only if not switching servers
         if (!isSwitching) {
           setSystemProxy();
@@ -933,6 +951,9 @@ function switchServer(newConfigIndex) {
     v2rayProcess = null;
   }
   
+  // Clear the last ping value when switching servers
+  global.lastPing = null;
+  
   // Set the new selected config
   if (configList[newConfigIndex]) {
     selectedConfig = configList[newConfigIndex];
@@ -965,6 +986,14 @@ function switchServer(newConfigIndex) {
       win.webContents.send('connection-status', false);
     }
   }
+}
+
+// Function to get and send connection statistics
+async function sendConnectionStats() {
+  if (!isConnected || !win) return;
+  
+  // Just trigger a ping measurement
+  measurePing();
 }
 
 // Optimized measurePing function with better error handling
@@ -1015,19 +1044,11 @@ function startPingInterval() {
     clearInterval(pingInterval);
   }
   
-  // Start new interval to ping every 5 seconds
+  // Start new interval to ping every 5 seconds (5000ms)
   pingInterval = setInterval(measurePing, 5000);
   
   // Also do an initial ping
   setTimeout(measurePing, 100);
-}
-
-// Function to get and send connection statistics
-async function sendConnectionStats() {
-  if (!isConnected || !win) return;
-  
-  // Just trigger a ping measurement
-  measurePing();
 }
 
 // Function to check if core directory exists and contains required files

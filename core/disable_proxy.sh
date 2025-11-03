@@ -9,10 +9,16 @@ fi
 
 # Disable system proxy for GNOME
 gsettings set org.gnome.system.proxy mode 'none' 2>/dev/null
+gsettings reset org.gnome.system.proxy.http host 2>/dev/null
+gsettings reset org.gnome.system.proxy.http port 2>/dev/null
+gsettings reset org.gnome.system.proxy.https host 2>/dev/null
+gsettings reset org.gnome.system.proxy.https port 2>/dev/null
 
 # Disable system proxy for KDE (if kwriteconfig5 is available)
 if command -v kwriteconfig5 &> /dev/null; then
   kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key ProxyType 0 2>/dev/null
+  kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpProxy --delete 2>/dev/null
+  kwriteconfig5 --file kioslaverc --group "Proxy Settings" --key httpsProxy --delete 2>/dev/null
 fi
 
 # Also unset environment variables that might be set
