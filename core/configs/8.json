@@ -21,35 +21,24 @@
   "outbounds": [
     {
       "tag": "proxy",
-      "protocol": "vmess",
+      "protocol": "shadowsocks",
       "settings": {
-        "vnext": [
+        "servers": [
           {
-            "address": "141.94.155.228",
-            "port": 443,
-            "users": [
-              {
-                "alterId": 0,
-                "id": "03fcc618-b93d-6796-6aed-8a38c975d581",
-                "level": 8,
-                "security": "auto"
-              }
-            ]
+            "address": "185.93.173.60",
+            "level": 8,
+            "method": "chacha20-ietf-poly1305",
+            "password": "ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=",
+            "port": 990
           }
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "security": "tls",
-        "wsSettings": {
-          "headers": {
-            "Host": "kampong.org"
-          },
-          "path": "linkvws"
-        },
-        "tlsSettings": {
-          "allowInsecure": true,
-          "serverName": "kampong.org"
+        "network": "tcp",
+        "tcpSettings": {
+          "header": {
+            "type": "none"
+          }
         }
       },
       "mux": {
@@ -81,5 +70,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🇫🇷 France"
+  "remarks": "🇧🇴 Bolivia"
 }

@@ -8,7 +8,10 @@ on:
 
 jobs:
   build-and-release:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     
     steps:
     - name: Checkout code
@@ -21,38 +24,72 @@ jobs:
       with:
         node-version: '22'
 
-    - name: Install dependencies
-      run: npm install
+    - name: Install pnpm
+      run: npm install -g pnpm
 
-    - name: Build application
-      run: npm run verify-core && npm run obfuscate && npx electron-builder --win --x64 --publish never
+    - name: Install dependencies
+      run: pnpm install
+
+    - name: Build application (Windows)
+      if: matrix.os == 'windows-latest'
+      run: pnpm verify-core && pnpm obfuscate && npx electron-builder --win --x64 --publish never
+      env:
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+
+    - name: Build application (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: pnpm verify-core && pnpm obfuscate && npx electron-builder --linux --x64 --publish never
       env:
         CSC_IDENTITY_AUTO_DISCOVERY: false
 
     - name: Get version
       id: get_version
+      shell: bash
       run: |
-        $version = (Get-Content package.json | ConvertFrom-Json).version
-        echo "VERSION=$version" >> $env:GITHUB_ENV
+        version=$(node -p "require('./package.json').version")
+        echo "VERSION=$version" >> $GITHUB_ENV
 
     - name: Rename Windows installer
+      if: matrix.os == 'windows-latest'
+      shell: pwsh
       run: |
         $version = $env:VERSION
         if (Test-Path "release\DengVPN Setup $version.exe") {
           Rename-Item -Path "release\DengVPN Setup $version.exe" -NewName "DengVPN-$version-x64.exe"
         }
 
+    - name: Rename Linux installers
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        version=$VERSION
+        # Rename AppImage if it exists
+        if [ -f "release/DengVPN-$version.AppImage" ]; then
+          mv "release/DengVPN-$version.AppImage" "release/DengVPN-$version-x86_64.AppImage"
+        fi
+        # Rename deb if it exists
+        if [ -f "release/dengvpn_$version_amd64.deb" ]; then
+          mv "release/dengvpn_$version_amd64.deb" "release/DengVPN-$version-amd64.deb"
+        fi
+
     - name: List release files
       run: |
-        Get-ChildItem -Path release -Recurse
+        ls -R release/
 
-    - name: Upload artifacts
+    - name: Upload Windows artifacts
+      if: matrix.os == 'windows-latest'
       uses: actions/upload-artifact@v4
       with:
-        name: dengvpn-build
+        name: dengvpn-windows-build
         path: release/
 
-    - name: Create Release
+    - name: Upload Linux artifacts
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: dengvpn-linux-build
+        path: release/
+
+    - name: Upload release assets
       uses: softprops/action-gh-release@v1
       if: github.ref == 'refs/heads/master'
       with:
@@ -62,5 +99,7 @@ jobs:
         prerelease: false
         files: |
           release/DengVPN-${{ env.VERSION }}-x64.exe
+          release/DengVPN-${{ env.VERSION }}-x86_64.AppImage
+          release/DengVPN-${{ env.VERSION }}-amd64.deb
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

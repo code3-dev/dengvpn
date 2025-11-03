@@ -8,19 +8,26 @@ DengVPN utilizes [Xray](https://github.com/XTLS/Xray-core) as its core VPN engin
 
 ### Core Location
 
-The Xray binaries are located in the `core/xray/` directory:
+The Xray binaries are located in platform-specific directories:
 ```
-core/xray/
-├── xray.exe          # Windows executable
-├── xray              # Linux executable
-└── geoip.dat         # GeoIP database
+core/xray/                # Windows binaries
+├── xray.exe              # Windows executable
+└── geoip.dat             # GeoIP database
+
+core/linux/xray/          # Linux binaries
+├── xray                  # Linux executable
+└── geoip.dat             # GeoIP database
 ```
 
 ### Configuration
 
 Xray is executed with the command:
 ```
-xray --config ../configs/{id}.json
+# Windows
+xray.exe --config ../configs/{id}.json
+
+# Linux
+./xray --config ../configs/{id}.json
 ```
 
 This directly loads the specific generated configuration file by ID, rather than copying it to the default config.json location.
@@ -32,7 +39,7 @@ Generated JSON configuration files are stored in the `/core/configs` subdirector
 ## Protocol Support
 
 Xray core supports multiple protocols including:
-- VMess
+- Xray
 - VLESS
 - Trojan
 - Shadowsocks
@@ -54,6 +61,12 @@ Xray core provides:
 - AEAD encryption
 - Traffic padding
 - Domain fronting capabilities
+
+## Cross-Platform Support
+
+Xray core is available for multiple platforms:
+- Windows (x86_64)
+- Linux (x86_64)
 
 ## Customization
 

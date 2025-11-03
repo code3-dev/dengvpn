@@ -26,7 +26,7 @@
       --text-tertiary: rgba(255, 255, 255, 0.5);
       --card-padding: clamp(15px, 4vw, 40px);
       --container-max-width: min(95%, 1200px);
-      --transition-speed: 0.3s;
+      --transition-speed: 0.2s; /* Reduced transition time for better responsiveness */
     }
 
     /* Light theme variables */
@@ -61,6 +61,9 @@
       font-size: 16px;
       line-height: 1.5;
       transition: background-color var(--transition-speed), color var(--transition-speed);
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: background-color, color;
     }
 
     .app-container {
@@ -85,6 +88,8 @@
       z-index: 10;
       position: relative;
       flex-shrink: 0;
+      /* Add hardware acceleration */
+      transform: translateZ(0);
     }
 
     .light-theme .header {
@@ -119,11 +124,14 @@
       cursor: pointer;
       color: var(--text-color);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      transition: all var(--transition-speed);
+      transition: all 0.2s ease; /* Faster transition */
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: transform;
     }
 
     .theme-toggle:hover {
-      transform: rotate(15deg);
+      transform: rotate(15deg) translateZ(0);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
     }
 
@@ -143,6 +151,10 @@
       border-radius: 30px;
       font-weight: 500;
       font-size: clamp(12px, 3vw, 14px);
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: background-color;
+      transition: background-color 0.2s ease;
     }
 
     .light-theme .status-indicator {
@@ -157,7 +169,10 @@
       background-color: var(--disconnected-color);
       box-shadow: 0 0 10px var(--disconnected-color);
       flex-shrink: 0;
-      transition: all var(--transition-speed);
+      transition: all 0.2s ease; /* Faster transition */
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: background-color, box-shadow;
     }
 
     .dot.connected {
@@ -172,6 +187,10 @@
       font-size: clamp(12px, 3vw, 14px);
       color: var(--text-secondary);
       white-space: nowrap;
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: color;
+      transition: color 0.2s ease;
     }
 
     .light-theme .proxy-status {
@@ -191,6 +210,8 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      /* Add hardware acceleration */
+      transform: translateZ(0);
     }
 
     /* Connection Card */
@@ -205,7 +226,10 @@
       box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
       position: relative;
       overflow: hidden;
-      animation: cardAppear 0.4s ease-out;
+      animation: cardAppear 0.3s ease-out; /* Faster animation */
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: transform, box-shadow;
     }
 
     .light-theme .connection-card {
@@ -213,8 +237,8 @@
     }
 
     @keyframes cardAppear {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translateY(20px) translateZ(0); }
+      to { opacity: 1; transform: translateY(0) translateZ(0); }
     }
 
     @keyframes glow {
@@ -262,7 +286,10 @@
       font-size: 16px;
       font-family: 'Inter', sans-serif;
       outline: none;
-      transition: all var(--transition-speed);
+      transition: all 0.2s ease; /* Faster transition */
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: border-color, box-shadow;
     }
 
     .light-theme .server-select {
@@ -295,27 +322,30 @@
       font-weight: 600;
       border-radius: 12px;
       cursor: pointer;
-      transition: all var(--transition-speed);
+      transition: all 0.2s ease; /* Faster transition */
       box-shadow: var(--button-shadow);
       width: 100%;
       margin: 20px 0;
       position: relative;
       overflow: hidden;
+      /* Add hardware acceleration */
+      transform: translateZ(0);
+      will-change: transform, box-shadow;
     }
 
     .connect-button:hover {
-      transform: translateY(-2px);
+      transform: translateY(-2px) translateZ(0);
       box-shadow: 0 15px 30px rgba(108, 92, 231, 0.4);
     }
 
     .connect-button:active {
-      transform: translateY(0);
+      transform: translateY(0) translateZ(0);
     }
 
     .connect-button:disabled {
       opacity: 0.6;
       cursor: not-allowed;
-      transform: none;
+      transform: none translateZ(0);
       box-shadow: none;
     }
 
@@ -334,6 +364,8 @@
       color: var(--text-secondary);
       margin: 10px 0;
       min-height: 20px;
+      /* Add hardware acceleration */
+      transform: translateZ(0);
     }
 
     .ping-value {
@@ -347,6 +379,8 @@
       font-size: 14px;
       color: var(--text-secondary);
       margin-top: 10px;
+      /* Add hardware acceleration */
+      transform: translateZ(0);
     }
 
     /* Responsive Design */
@@ -452,6 +486,7 @@
     let connectionTimer = null;
     let pingInterval = null;
     let currentPing = '--';
+    let lastPingUpdate = 0; // Track last ping update time
 
     // DOM Elements
     const connectButton = document.getElementById('connectButton');
@@ -519,7 +554,7 @@
       }
     }
 
-    // Update connection status
+    // Update connection status with optimized rendering
     function updateConnectionStatus(connected) {
       isConnected = connected;
       
@@ -553,7 +588,7 @@
       }
     }
 
-    // Start connection timer
+    // Start connection timer with optimized updates
     function startConnectionTimer() {
       stopConnectionTimer();
       connectionTimer = setInterval(() => {
@@ -576,13 +611,13 @@
       }
     }
 
-    // Start ping interval
+    // Start ping interval with optimized frequency
     function startPingInterval() {
       stopPingInterval();
       // Initial ping
       measurePing();
-      // Ping every 5 seconds
-      pingInterval = setInterval(measurePing, 5000);
+      // Ping every 3 seconds (increased frequency for better responsiveness)
+      pingInterval = setInterval(measurePing, 3000);
     }
 
     // Stop ping interval
@@ -593,27 +628,38 @@
       }
     }
 
-    // Measure ping to Google's connectivity check
+    // Measure ping to Google's connectivity check with optimizations
     async function measurePing() {
       if (!isConnected) return;
+      
+      // Throttle ping updates to at most once per second
+      const now = Date.now();
+      if (now - lastPingUpdate < 1000) return;
+      lastPingUpdate = now;
       
       try {
         const startTime = Date.now();
         const response = await fetch('https://www.gstatic.com/generate_204', { 
           method: 'GET',
           cache: 'no-cache',
-          mode: 'no-cors' // Using no-cors to avoid preflight issues
+          mode: 'no-cors', // Using no-cors to avoid preflight issues
+          signal: AbortSignal.timeout(3000) // 3 second timeout
         });
         const endTime = Date.now();
         const pingTime = endTime - startTime;
         
-        // Update ping display
-        pingValue.textContent = pingTime;
-        currentPing = pingTime;
+        // Update ping display only if there's a significant change
+        if (pingValue.textContent === '--' || Math.abs(parseInt(pingValue.textContent) - pingTime) > 5) {
+          pingValue.textContent = pingTime;
+          currentPing = pingTime;
+        }
       } catch (error) {
         console.error('Ping error:', error);
-        pingValue.textContent = 'Error';
-        currentPing = 'Error';
+        // Update ping display only if state changed
+        if (pingValue.textContent !== 'Error') {
+          pingValue.textContent = 'Error';
+          currentPing = 'Error';
+        }
       }
     }
 
@@ -633,7 +679,7 @@
       }
     }
 
-    // Handle server selection change
+    // Handle server selection change with optimizations
     function handleServerChange(index) {
       if (index >= 0) {
         selectServer(index);
@@ -652,9 +698,12 @@
       }
     }
 
-    // Render server list in dropdown
+    // Render server list in dropdown with optimizations
     function renderServerList() {
-      serverSelect.innerHTML = '<option value="-1">Select a server</option>';
+      // Use document fragment for better performance
+      const fragment = document.createDocumentFragment();
+      fragment.appendChild(document.createElement('option')).innerHTML = 'Select a server';
+      fragment.firstChild.value = '-1';
       
       configs.forEach((config, index) => {
         const serverName = formatServerName(config);
@@ -666,8 +715,12 @@
         if (index === selectedServerIndex) {
           option.selected = true;
         }
-        serverSelect.appendChild(option);
+        fragment.appendChild(option);
       });
+      
+      // Replace all options at once
+      serverSelect.innerHTML = '';
+      serverSelect.appendChild(fragment);
     }
 
     // Event listeners

@@ -21,39 +21,24 @@
   "outbounds": [
     {
       "tag": "proxy",
-      "protocol": "vless",
+      "protocol": "shadowsocks",
       "settings": {
-        "vnext": [
+        "servers": [
           {
-            "address": "2606:4700:3036:6ed4:e1ed:ae00:3c36:e683",
-            "port": 443,
-            "users": [
-              {
-                "encryption": "none",
-                "flow": "",
-                "id": "602b380a-9fdf-4425-bc07-aae9a95cfc4b",
-                "level": 8
-              }
-            ]
+            "address": "38.54.4.65",
+            "level": 8,
+            "method": "chacha20-ietf-poly1305",
+            "password": "ARgvGZywA+gacgGV26Bvmu05+wZmRW/j+AdU+Z8Bt44=",
+            "port": 990
           }
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "security": "tls",
-        "wsSettings": {
-          "headers": {
-            "Host": "vless.hubp.de"
-          },
-          "path": "/snippets/ip=tp50000.kr.proxyip.fgfw.eu.org:50000"
-        },
-        "tlsSettings": {
-          "allowInsecure": true,
-          "alpn": [
-            "h3"
-          ],
-          "fingerprint": "random",
-          "serverName": "vless.hubp.de"
+        "network": "tcp",
+        "tcpSettings": {
+          "header": {
+            "type": "none"
+          }
         }
       },
       "mux": {
@@ -85,5 +70,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "©️ Cloudflare"
+  "remarks": "🇰🇭 Cambodia"
 }

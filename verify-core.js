@@ -1,24 +1,51 @@
 const fs = require('fs');
 const path = require('path');
 
-// Required Xray core files
-const requiredFiles = [
-  'xray.exe',
-];
+// Detect platform
+const isWindows = process.platform === 'win32';
+const isLinux = process.platform === 'linux';
 
-const requiredFilesInCoreRoot = [
-  'disable_proxy.bat',
-  'run.bat',
-];
+// Platform-specific required files
+let requiredFiles, requiredFilesInCoreRoot;
 
-// Required files in subdirectories
+if (isWindows) {
+  requiredFiles = [
+    'xray.exe',
+  ];
+  
+  requiredFilesInCoreRoot = [
+    'disable_proxy.bat',
+    'run.bat',
+  ];
+} else if (isLinux) {
+  requiredFiles = [
+    'xray',
+  ];
+  
+  requiredFilesInCoreRoot = [
+    'disable_proxy.sh',
+    'run.sh',
+  ];
+} else {
+  // Default to Windows for other platforms
+  requiredFiles = [
+    'xray.exe',
+  ];
+  
+  requiredFilesInCoreRoot = [
+    'disable_proxy.bat',
+    'run.bat',
+  ];
+}
+
+// Required files in subdirectories (platform-independent)
 const requiredSubDirs = [
-  { name: 'x2j', files: ['x2j.exe'] }
+  { name: 'x2j', files: isWindows ? ['x2j.exe'] : (isLinux ? ['x2j'] : ['x2j.exe']) }
 ];
 
 // Core directory paths
 const coreDir = path.join(__dirname, 'core');
-const xrayDir = path.join(coreDir, 'xray');
+const xrayDir = isLinux ? path.join(coreDir, 'linux', 'xray') : path.join(coreDir, 'xray');
 const configsDir = path.join(coreDir, 'configs');
 
 console.log('Verifying Xray core files...');
@@ -89,10 +116,22 @@ if (missingFiles.length > 0 || missingFilesInCoreRoot.length > 0 || missingSubDi
   console.error('- tun2socks: (part of Xray-core or separate distribution)');
   console.error('- x2j: (part of Xray-core or separate distribution)');
   console.error('\nExtract the files and place them in the following directories:');
-  console.error(`Xray files (xray.exe: ${xrayDir}`);
-  console.error(`TUN files (tun2socks.exe): ${path.join(coreDir, 'tun')}`);
-  console.error(`X2J files (x2j.exe): ${path.join(coreDir, 'x2j')}`);
-  console.error(`Other files (config.json, disable_proxy.bat, run.bat): ${coreDir}`);
+  
+  if (isWindows) {
+    console.error(`Xray files (xray.exe): ${xrayDir}`);
+    console.error(`TUN files (tun2socks.exe): ${path.join(coreDir, 'tun')}`);
+    console.error(`X2J files (x2j.exe): ${path.join(coreDir, 'x2j')}`);
+    console.error(`Other files (config.json, disable_proxy.bat, run.bat): ${coreDir}`);
+  } else if (isLinux) {
+    console.error(`Xray files (xray): ${xrayDir}`);
+    console.error(`X2J files (x2j): ${path.join(coreDir, 'linux', 'x2j')}`);
+    console.error(`Other files (config.json, disable_proxy.sh, run.sh): ${coreDir}`);
+  } else {
+    console.error(`Xray files (xray.exe): ${xrayDir}`);
+    console.error(`TUN files (tun2socks.exe): ${path.join(coreDir, 'tun')}`);
+    console.error(`X2J files (x2j.exe): ${path.join(coreDir, 'x2j')}`);
+    console.error(`Other files (config.json, disable_proxy.bat, run.bat): ${coreDir}`);
+  }
   
   // Create placeholder files in development to prevent build errors
   console.log('\nCreating placeholder files for build process...');

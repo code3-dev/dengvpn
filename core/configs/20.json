@@ -25,7 +25,7 @@
       "settings": {
         "vnext": [
           {
-            "address": "38.143.66.81",
+            "address": "15.235.85.156",
             "port": 443,
             "users": [
               {
@@ -43,13 +43,13 @@
         "security": "tls",
         "wsSettings": {
           "headers": {
-            "Host": "seribus.org"
+            "Host": "kampong.org"
           },
           "path": "linkvws"
         },
         "tlsSettings": {
           "allowInsecure": true,
-          "serverName": "seribus.org"
+          "serverName": "kampong.org"
         }
       },
       "mux": {
@@ -81,5 +81,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🇺🇸 US - @"
+  "remarks": "🇨🇦 Canada S"
 }

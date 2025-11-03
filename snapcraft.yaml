@@ -1,0 +1,79 @@
+name: dengvpn
+version: '1.5.0'
+summary: Free & Unlimited VPN Service
+description: |
+  DengVPN is a powerful, free, and unlimited bandwidth desktop VPN client powered by Xray core and built with Electron. 
+  Enjoy secure and unrestricted internet access without any data limits.
+  
+  Key Features:
+  - 100% Free & Unlimited bandwidth
+  - Auto-fetches updated Xray configurations
+  - One-click connect/disconnect
+  - Automatically configures system proxy
+  - Real-time connection stats (ping, uptime)
+  - Auto-restart on disconnection
+  - Cross-platform support (Windows & Linux)
+
+base: core22
+confinement: strict
+grade: stable
+
+parts:
+  dengvpn:
+    plugin: nil
+    source: .
+    build-packages:
+      - build-essential
+      - libgtk-3-dev
+      - libx11-dev
+      - libdbus-1-dev
+      - libxext-dev
+      - libxrandr-dev
+      - libxrender-dev
+      - libxslt1-dev
+      - libxtst-dev
+    stage-packages:
+      - libgconf-2-4
+      - libgtk-3-0
+      - libx11-xcb1
+      - libxcb-dri3-0
+      - libxcb-present0
+      - libxcb-sync1
+      - libxdamage1
+      - libxext6
+      - libxfixes3
+      - libxrandr2
+      - libxrender1
+      - libxss1
+      - libxtst6
+    override-build: |
+      # Install pnpm
+      npm install -g pnpm
+      # Install dependencies
+      pnpm install
+      # Build the application
+      pnpm verify-core
+      pnpm obfuscate
+      npx electron-builder --linux --x64 --publish never
+      # Copy the AppImage to the snap build directory
+      cp release/DengVPN-*-x86_64.AppImage $SNAPCRAFT_PART_INSTALL/
+    organize:
+      DengVPN-*-x86_64.AppImage: dengvpn.AppImage
+
+apps:
+  dengvpn:
+    command: dengvpn.AppImage
+    plugs:
+      - network
+      - network-bind
+      - network-manager
+      - x11
+      - desktop
+      - desktop-legacy
+      - wayland
+      - unity7
+      - gsettings
+      - pulseaudio
+      - opengl
+      - home
+      - removable-media

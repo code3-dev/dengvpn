@@ -1,9 +1,39 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// Cache for callbacks to prevent memory leaks
+const callbackCache = new Map();
+
 contextBridge.exposeInMainWorld('electron', {
-  send: (channel, data) => ipcRenderer.send(channel, data),
-  receive: (channel, callback) => ipcRenderer.on(channel, (event, ...args) => callback(...args)),
-  openExternal: (url) => ipcRenderer.send('open-external', url),
+  send: (channel, data) => {
+    // List of allowed channels
+    const validChannels = ['open-external', 'connect-vpn', 'connect-vpn-url', 'disconnect-vpn', 'get-configs', 'request-stats'];
+    if (validChannels.includes(channel)) {
+      ipcRenderer.send(channel, data);
+    }
+  },
+  receive: (channel, callback) => {
+    // List of allowed channels
+    const validChannels = ['update-configs', 'connection-status', 'connection-stats'];
+    if (validChannels.includes(channel)) {
+      // Cache the callback to prevent memory leaks
+      if (!callbackCache.has(channel)) {
+        callbackCache.set(channel, new Set());
+      }
+      callbackCache.get(channel).add(callback);
+      
+      // Remove callback when the page unloads
+      window.addEventListener('beforeunload', () => {
+        if (callbackCache.has(channel)) {
+          callbackCache.get(channel).delete(callback);
+        }
+      });
+      
+      ipcRenderer.on(channel, (event, ...args) => callback(...args));
+    }
+  },
+  openExternal: (url) => {
+    ipcRenderer.send('open-external', url);
+  },
 });
 
 contextBridge.exposeInMainWorld('vpn', {
@@ -23,13 +53,52 @@ contextBridge.exposeInMainWorld('vpn', {
     ipcRenderer.send('request-stats');
   },
   onUpdateConfigs: (callback) => {
-    ipcRenderer.on('update-configs', (event, configs) => callback(configs));
+    const channel = 'update-configs';
+    if (!callbackCache.has(channel)) {
+      callbackCache.set(channel, new Set());
+    }
+    callbackCache.get(channel).add(callback);
+    
+    // Remove callback when the page unloads
+    window.addEventListener('beforeunload', () => {
+      if (callbackCache.has(channel)) {
+        callbackCache.get(channel).delete(callback);
+      }
+    });
+    
+    ipcRenderer.on(channel, (event, configs) => callback(configs));
   },
   onConnectionStatus: (callback) => {
-    ipcRenderer.on('connection-status', (event, status) => callback(status));
+    const channel = 'connection-status';
+    if (!callbackCache.has(channel)) {
+      callbackCache.set(channel, new Set());
+    }
+    callbackCache.get(channel).add(callback);
+    
+    // Remove callback when the page unloads
+    window.addEventListener('beforeunload', () => {
+      if (callbackCache.has(channel)) {
+        callbackCache.get(channel).delete(callback);
+      }
+    });
+    
+    ipcRenderer.on(channel, (event, status) => callback(status));
   },
   onConnectionStats: (callback) => {
-    ipcRenderer.on('connection-stats', (event, stats) => callback(stats));
+    const channel = 'connection-stats';
+    if (!callbackCache.has(channel)) {
+      callbackCache.set(channel, new Set());
+    }
+    callbackCache.get(channel).add(callback);
+    
+    // Remove callback when the page unloads
+    window.addEventListener('beforeunload', () => {
+      if (callbackCache.has(channel)) {
+        callbackCache.get(channel).delete(callback);
+      }
+    });
+    
+    ipcRenderer.on(channel, (event, stats) => callback(stats));
   },
   openExternal: (url) => {
     ipcRenderer.send('open-external', url);

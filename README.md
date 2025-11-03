@@ -29,12 +29,13 @@ DengVPN is a powerful, free, and unlimited bandwidth desktop VPN client powered 
 ### ✨ Key Features
 
 - ✅ **100% Free & Unlimited** bandwidth
-- 🔄 **Auto-fetches** updated VMESS configurations
+- 🔄 **Auto-fetches** updated Xeay configurations
 - 🖱️ **One-click** connect/disconnect
-- ⚙️ **Automatically configures** Windows system proxy
+- ⚙️ **Automatically configures** system proxy (Windows & Linux)
 - 📊 **Real-time connection stats** (ping, uptime)
 - 🔁 **Auto-restart** on disconnection
 - 🛡️ **Secure** with Xray core protocol
+- 🖥️ **Cross-platform** support (Windows & Linux)
 
 ---
 
@@ -51,9 +52,15 @@ DengVPN is a powerful, free, and unlimited bandwidth desktop VPN client powered 
 
 ### Installation
 
+#### Windows
 1. Download the latest release from [GitHub Releases](https://github.com/code3-dev/dengvpn/releases)
 2. Run the installer (`DengVPN-{version}-x64.exe`)
 3. Launch DengVPN from your desktop or start menu
+
+#### Linux
+1. Download the AppImage or deb package from [GitHub Releases](https://github.com/code3-dev/dengvpn/releases)
+2. Make the AppImage executable: `chmod +x DengVPN-{version}-x86_64.AppImage`
+3. Run the AppImage: `./DengVPN-{version}-x86_64.AppImage`
 
 ### Usage
 
@@ -71,7 +78,7 @@ graph TD
     B --> C[Main Process]
     C --> D[Xray Core]
     C --> E[System Proxy]
-    F[VMESS Config URL] --> G[Config Fetcher]
+    F[Xray Config URL] --> G[Config Fetcher]
     G --> D
 ```
 
@@ -80,8 +87,8 @@ graph TD
 - **Frontend Layer**: Electron-based UI for intuitive user interaction
 - **IPC Layer**: Secure bidirectional communication between renderer and main process
 - **Core Engine**: [Xray](https://github.com/XTLS/Xray-core) binary for robust VPN protocol handling
-- **Configuration Tool**: [x2j](https://github.com/code3-dev/x2j) for converting VMESS links to Xray JSON configs
-- **System Integration**: Uses `sudo-prompt` to modify system proxy settings
+- **Configuration Tool**: [x2j](https://github.com/code3-dev/x2j) for converting Xray links to Xray JSON configs
+- **System Integration**: Uses platform-specific scripts to modify system proxy settings
 
 ---
 
@@ -101,12 +108,17 @@ graph TD
 ```
 dengvpn/
 ├── assets/           # HTML templates and icons
-├── core/             # Xray binaries, config files, and PowerShell scripts
+├── core/             # Xray binaries, config files, and platform scripts
 │   ├── configs/      # Generated JSON configuration files
-│   ├── xray/         # Xray core binaries
-│   ├── x2j/          # x2j conversion tool
-│   ├── run.bat       # Xray execution script
-│   └── disable_proxy.bat  # Proxy disabling script
+│   ├── linux/        # Linux-specific binaries and scripts
+│   │   ├── xray/     # Xray core binaries for Linux
+│   │   └── x2j/      # x2j conversion tool for Linux
+│   ├── xray/         # Windows Xray core binaries
+│   ├── x2j/          # Windows x2j conversion tool
+│   ├── run.bat       # Windows Xray execution script
+│   ├── run.sh        # Linux Xray execution script
+│   ├── disable_proxy.bat  # Windows proxy disabling script
+│   └── disable_proxy.sh   # Linux proxy disabling script
 ├── dist/             # Compiled frontend assets
 ├── docs/             # Complete documentation
 ├── release/          # Generated installers
@@ -119,10 +131,10 @@ dengvpn/
 
 ### Core Workflow
 
-1. Application fetches VMESS configuration URL
-2. [x2j](https://github.com/code3-dev/x2j) converts VMESS to Xray JSON config
+1. Application fetches Xray configuration URL
+2. [x2j](https://github.com/code3-dev/x2j) converts Xray Links to Xray JSON config
 3. [Xray](https://github.com/XTLS/Xray-core) core executes with generated config
-4. System proxy automatically configured via PowerShell scripts
+4. System proxy automatically configured via platform-specific scripts
 5. Real-time stats displayed in UI via IPC communication
 
 ---
@@ -142,29 +154,29 @@ git clone https://github.com/code3-dev/dengvpn.git
 cd dengvpn
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start development mode
-npm start
+pnpm start
 ```
 
 ### Build Commands
 
 ```bash
 # Verify core components
-npm run verify-core
+pnpm verify-core
 
 # Obfuscate source code
-npm run obfuscate
+pnpm obfuscate
 
 # Build for Windows
-npm run build:win
+pnpm build:win
 
 # Build for Linux
-npm run build:linux
+pnpm build:linux
 
 # Full production build
-npm run build
+pnpm build
 ```
 
 ## 🔐 Security
@@ -181,9 +193,9 @@ DengVPN is designed with security in mind:
 ## 📦 Release Process
 
 1. Code is automatically built using GitHub Actions
-2. Windows installer is generated with electron-builder
+2. Platform-specific installers are generated with electron-builder
 3. Release is published to GitHub Releases
-4. Installer is renamed to `DengVPN-{version}-x64.exe`
+4. Installers are available for both Windows and Linux
 
 ---
 
@@ -208,7 +220,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 🙏 Acknowledgments
 
 - [Xray Core](https://github.com/XTLS/Xray-core) - The core VPN protocol implementation
-- [x2j](https://github.com/code3-dev/x2j) - VMESS to JSON configuration converter
+- [x2j](https://github.com/code3-dev/x2j) - Xray to JSON configuration converter
 - [Electron](https://www.electronjs.org/) - Cross-platform desktop application framework
 - All contributors who have helped with testing and development
 

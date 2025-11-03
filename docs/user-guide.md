@@ -5,19 +5,37 @@
 ### System Requirements
 
 - **Windows**: Windows 7 or later (64-bit)
-- **Linux**: Ubuntu 18.04+, Debian 10+, or equivalent distributions
+- **Linux**: Ubuntu 18.04+, Debian 10+, Fedora 32+, or equivalent distributions
 - At least 100MB of available disk space
 
 ### Installation
 
+#### Windows
 1. Download the latest release from [GitHub Releases](https://github.com/code3-dev/dengvpn/releases)
-2. For Windows, download `DengVPN-{version}-x64.exe`
+2. Download `DengVPN-{version}-x64.exe`
 3. Run the installer and follow the installation wizard
 4. Launch DengVPN from your desktop shortcut or start menu
 
+#### Linux
+1. Download the latest release from [GitHub Releases](https://github.com/code3-dev/dengvpn/releases)
+2. Choose one of the following packages:
+   - AppImage: `DengVPN-{version}-x86_64.AppImage` (portable)
+   - Debian package: `DengVPN-{version}-amd64.deb` (Debian/Ubuntu)
+   - RPM package: `dengvpn-{version}.rpm` (Fedora/RHEL)
+   - Tar.gz archive: `dengvpn-{version}.tar.gz` (manual installation)
+3. For AppImage:
+   - Make executable: `chmod +x DengVPN-{version}-x86_64.AppImage`
+   - Run: `./DengVPN-{version}-x86_64.AppImage`
+4. For Debian package:
+   - Install: `sudo dpkg -i DengVPN-{version}-amd64.deb`
+   - Launch from applications menu or run `dengvpn`
+5. For RPM package:
+   - Install: `sudo rpm -i dengvpn-{version}.rpm`
+   - Launch from applications menu or run `dengvpn`
+
 ### Initial Setup
 
-1. Obtain a VMESS configuration URL from your VPN provider
+1. Obtain a Xray configuration URL from your VPN provider
 2. The application will automatically fetch and configure the connection
 
 ## Using DengVPN
@@ -33,7 +51,7 @@ The DengVPN interface consists of:
 
 ### Connecting to VPN
 
-1. Ensure you have a valid VMESS URL configured
+1. Ensure you have a valid Xray URL configured
 2. Click the **Connect** button
 3. Wait for the connection to establish (usually takes 1-3 seconds)
 4. The status will change to "Connected" when successful
@@ -53,14 +71,6 @@ The statistics panel displays real-time information:
 
 ## Configuration
 
-### VMESS URL
-
-DengVPN automatically fetches VMESS configuration from a predefined URL. To change this:
-
-1. Close the application
-2. Set the `VMESS_URL` environment variable to your configuration URL
-3. Restart the application
-
 ### Proxy Settings
 
 The application automatically configures your system proxy settings:
@@ -76,7 +86,7 @@ These settings are automatically reverted when disconnecting.
 #### Unable to Connect
 
 1. Check your internet connection
-2. Verify the VMESS URL is valid and accessible
+2. Verify the Xray URL is valid and accessible
 3. Ensure no firewall is blocking the connection
 4. Try restarting the application
 
@@ -98,15 +108,15 @@ These settings are automatically reverted when disconnecting.
 
 This indicates an issue with the core VPN engine:
 1. Verify the application was installed correctly
-2. Check that Windows Defender or antivirus software isn't blocking the core files
+2. Check that antivirus software isn't blocking the core files
 3. Reinstall the application if the problem persists
 
 #### "Invalid configuration"
 
-This suggests an issue with the VMESS URL:
+This suggests an issue with the Xray URL:
 1. Verify the URL is correct and accessible
 2. Contact your VPN provider to confirm the configuration is valid
-3. Try with a different VMESS URL if available
+3. Try with a different Xray URL if available
 
 ### Logs
 
@@ -119,12 +129,6 @@ For advanced troubleshooting, check the application logs:
 ### Data Privacy
 
 DengVPN does not collect or transmit any personal data. All VPN traffic is encrypted using industry-standard protocols.
-
-### Encryption
-
-The application uses Xray core with strong encryption:
-- AES-128-GCM for VMess
-- ChaCha20-Poly1305 for alternative cipher
 
 ### No Logging Policy
 
@@ -165,6 +169,24 @@ The application automatically checks for updates on startup. Update notification
 
 Alternatively, use the uninstaller in the installation directory.
 
+### Linux
+
+#### AppImage
+- Simply delete the AppImage file
+
+#### Debian/Ubuntu
+```bash
+sudo apt remove dengvpn
+```
+
+#### Fedora/RHEL
+```bash
+sudo rpm -e dengvpn
+```
+
+#### Manual Installation (tar.gz)
+- Delete the extracted directory
+
 ## Support
 
 For support, please:
@@ -184,7 +206,7 @@ Due to the nature of internet restrictions, VPN reliability can vary. We recomme
 
 ### Can I use my own Xray configuration?
 
-Currently, the application only supports VMESS URLs. Direct Xray configuration support is planned for future releases.
+Currently, the application only supports Xray URLs. Direct Xray configuration support is planned for future releases.
 
 ### How many devices can I use?
 

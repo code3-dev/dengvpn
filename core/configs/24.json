@@ -25,13 +25,13 @@
       "settings": {
         "vnext": [
           {
-            "address": "45.82.245.173",
-            "port": 80,
+            "address": "162.159.152.53",
+            "port": 443,
             "users": [
               {
                 "encryption": "none",
                 "flow": "",
-                "id": "1dbfb57c-164e-47c5-9355-8e0c429e7b99",
+                "id": "29187857-4a1f-4d1e-88eb-0016771e0dbb",
                 "level": 8
               }
             ]
@@ -40,12 +40,20 @@
       },
       "streamSettings": {
         "network": "ws",
-        "security": "none",
+        "security": "tls",
         "wsSettings": {
           "headers": {
-            "Host": "---@External_Net---@External_Net---@External_Net---@External_Net---@External_Net"
+            "Host": "vless.hubp.de"
           },
-          "path": "/vless/"
+          "path": "/?ed=2560"
+        },
+        "tlsSettings": {
+          "allowInsecure": true,
+          "alpn": [
+            "h3"
+          ],
+          "fingerprint": "random",
+          "serverName": "vless.hubp.de"
         }
       },
       "mux": {
@@ -77,5 +85,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🇧🇷 Brazil"
+  "remarks": "🔥 Cloudflare"
 }

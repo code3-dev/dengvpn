@@ -21,38 +21,24 @@
   "outbounds": [
     {
       "tag": "proxy",
-      "protocol": "vless",
+      "protocol": "shadowsocks",
       "settings": {
-        "vnext": [
+        "servers": [
           {
-            "address": "178.17.50.188",
-            "port": 8443,
-            "users": [
-              {
-                "encryption": "none",
-                "flow": "xtls-rprx-vision",
-                "id": "b50a9c58-b42d-40b1-93ec-bc6f34fcb5d8",
-                "level": 8
-              }
-            ]
+            "address": "104.192.226.106",
+            "level": 8,
+            "method": "chacha20-ietf-poly1305",
+            "password": "f8f7aCzcPKbsF8p3",
+            "port": 990
           }
         ]
       },
       "streamSettings": {
         "network": "tcp",
-        "security": "reality",
         "tcpSettings": {
           "header": {
             "type": "none"
           }
-        },
-        "realitySettings": {
-          "allowInsecure": true,
-          "fingerprint": "chrome",
-          "publicKey": "pUD3mOlIKBEtDyFWK0LsGkY7j__7vblFPXnEVoY9oVQ",
-          "serverName": "google.com",
-          "shortId": "22f040ed1037da8f",
-          "spiderX": ""
         }
       },
       "mux": {
@@ -84,5 +70,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🇳🇱 ProxyCloud"
+  "remarks": "🇺🇸 USA"
 }

@@ -25,13 +25,13 @@
       "settings": {
         "vnext": [
           {
-            "address": "162.159.153.144",
+            "address": "104.18.82.55",
             "port": 443,
             "users": [
               {
                 "encryption": "none",
                 "flow": "",
-                "id": "eb9123d0-d342-49a8-84d7-a0257a6f0260",
+                "id": "29187857-4a1f-4d1e-88eb-0016771e0dbb",
                 "level": 8
               }
             ]
@@ -45,7 +45,7 @@
           "headers": {
             "Host": "vless.hubp.de"
           },
-          "path": "/snippets/ip=tp50000.kr.proxyip.fgfw.eu.org:50000"
+          "path": "/?ed=2560"
         },
         "tlsSettings": {
           "allowInsecure": true,
@@ -85,5 +85,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "☁️🔥 Cloudflare"
+  "remarks": "👑 Cloudflare"
 }

@@ -25,7 +25,7 @@
       "settings": {
         "vnext": [
           {
-            "address": "15.204.64.211",
+            "address": "141.94.155.228",
             "port": 443,
             "users": [
               {
@@ -81,5 +81,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🇺🇸 United States"
+  "remarks": "🇫🇷 France"
 }

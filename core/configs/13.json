@@ -21,35 +21,38 @@
   "outbounds": [
     {
       "tag": "proxy",
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
         "vnext": [
           {
-            "address": "57.129.28.67",
-            "port": 443,
+            "address": "31.6.1.187",
+            "port": 25607,
             "users": [
               {
-                "alterId": 0,
-                "id": "03fcc618-b93d-6796-6aed-8a38c975d581",
-                "level": 8,
-                "security": "auto"
+                "encryption": "none",
+                "flow": "xtls-rprx-vision",
+                "id": "c8451b58-6337-4294-ba28-1a33731331a1",
+                "level": 8
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "security": "tls",
-        "wsSettings": {
-          "headers": {
-            "Host": "yichueng.org"
-          },
-          "path": "linkvws"
+        "network": "tcp",
+        "security": "reality",
+        "tcpSettings": {
+          "header": {
+            "type": "none"
+          }
         },
-        "tlsSettings": {
+        "realitySettings": {
           "allowInsecure": true,
-          "serverName": "yichueng.org"
+          "fingerprint": "chrome",
+          "publicKey": "j5CgrKQgkDV5bC5Y4pB0lGNupDYxklIDgge4HL1X3zE",
+          "serverName": "store.steampowered.com",
+          "shortId": "84",
+          "spiderX": ""
         }
       },
       "mux": {
@@ -81,5 +84,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🇩🇪 DE"
+  "remarks": "🇷🇴 Romania"
 }

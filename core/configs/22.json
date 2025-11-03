@@ -21,53 +21,35 @@
   "outbounds": [
     {
       "tag": "proxy",
-      "protocol": "vless",
+      "protocol": "vmess",
       "settings": {
         "vnext": [
           {
-            "address": "m7a.vip784.com",
-            "port": 33801,
+            "address": "57.128.216.125",
+            "port": 443,
             "users": [
               {
-                "encryption": "none",
-                "flow": "",
-                "id": "13c10b21-6211-4d43-856f-2e54ef2ac2e2",
-                "level": 8
+                "alterId": 0,
+                "id": "03fcc618-b93d-6796-6aed-8a38c975d581",
+                "level": 8,
+                "security": "auto"
               }
             ]
           }
         ]
       },
       "streamSettings": {
-        "network": "tcp",
-        "security": "none",
-        "tcpSettings": {
-          "header": {
-            "request": {
-              "headers": {
-                "Accept-Encoding": [
-                  "gzip, deflate"
-                ],
-                "Connection": [
-                  "keep-alive"
-                ],
-                "Host": [
-                  "varzesh3.ir"
-                ],
-                "Pragma": "no-cache",
-                "User-Agent": [
-                  "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.143 Safari/537.36",
-                  "Mozilla/5.0 (iPhone; CPU iPhone OS 10_0_2 like Mac OS X) AppleWebKit/601.1 (KHTML, like Gecko) CriOS/53.0.2785.109 Mobile/14A456 Safari/601.1.46"
-                ]
-              },
-              "method": "GET",
-              "path": [
-                "/"
-              ],
-              "version": "1.1"
-            },
-            "type": "http"
-          }
+        "network": "ws",
+        "security": "tls",
+        "wsSettings": {
+          "headers": {
+            "Host": "kampong.org"
+          },
+          "path": "linkvws"
+        },
+        "tlsSettings": {
+          "allowInsecure": true,
+          "serverName": "kampong.org"
         }
       },
       "mux": {
@@ -99,5 +81,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🇨🇦 Canada Free"
+  "remarks": "🇵🇱 Poland"
 }

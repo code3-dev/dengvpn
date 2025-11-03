@@ -6,14 +6,14 @@ Welcome to the complete documentation for DengVPN, a free and unlimited desktop 
 
 ### 📘 User Documentation
 
-- [User Guide](user-guide.md) - Complete instructions for installing and using DengVPN
+- [User Guide](user-guide.md) - Complete instructions for installing and using DengVPN on Windows and Linux
 - [FAQ](user-guide.md#faq) - Frequently asked questions and answers
 
 ### 🛠️ Technical Documentation
 
 - [Core Components](core-components.md) - Detailed information about the core architecture
 - [Xray Core Integration](xray-core.md) - How DengVPN integrates with Xray core
-- [x2j Tool Integration](x2j-tool.md) - How VMESS links are converted to configurations
+- [x2j Tool Integration](x2j-tool.md) - How Xray links are converted to configurations
 
 ### 👨‍💻 Development Documentation
 
@@ -34,6 +34,12 @@ If you're a new user, start with the [User Guide](user-guide.md).
 If you're a developer wanting to contribute, see the [Development Guide](development.md).
 
 For technical details about how DengVPN works internally, check the [Core Components](core-components.md) documentation.
+
+## Cross-Platform Support
+
+DengVPN now supports multiple platforms:
+- **Windows**: Windows 7 or later (64-bit)
+- **Linux**: Ubuntu 18.04+, Debian 10+, Fedora 32+, or equivalent distributions
 
 ## Support
 

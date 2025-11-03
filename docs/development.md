@@ -7,7 +7,7 @@ This guide provides information for developers who want to contribute to or modi
 ## Prerequisites
 
 - Node.js 22
-- npm 10+
+- pnpm 10+
 - Git
 
 ## Project Setup
@@ -22,7 +22,7 @@ cd dengvpn
 ### Install Dependencies
 
 ```bash
-npm install
+pnpm install
 ```
 
 ## Project Structure
@@ -31,6 +31,16 @@ npm install
 dengvpn/
 ├── assets/           # HTML templates and icons
 ├── core/             # Core binaries and scripts
+│   ├── linux/        # Linux-specific binaries and scripts
+│   │   ├── xray/     # Xray core for Linux
+│   │   └── x2j/      # x2j tool for Linux
+│   ├── configs/      # Generated JSON configuration files
+│   ├── xray/         # Xray core for Windows
+│   ├── x2j/          # x2j tool for Windows
+│   ├── run.bat       # Windows Xray execution script
+│   ├── run.sh        # Linux Xray execution script
+│   ├── disable_proxy.bat # Windows proxy disabling script
+│   └── disable_proxy.sh  # Linux proxy disabling script
 ├── dist/             # Compiled frontend assets
 ├── docs/             # Documentation files
 ├── release/          # Generated installers
@@ -47,7 +57,7 @@ dengvpn/
 ### Start Development Mode
 
 ```bash
-npm start
+pnpm start
 ```
 
 This runs `electron .` to start the application in development mode.
@@ -55,7 +65,7 @@ This runs `electron .` to start the application in development mode.
 ### Verify Core Components
 
 ```bash
-npm run verify-core
+pnpm verify-core
 ```
 
 Executes `verify-core.js` to validate that all core components are present and functional.
@@ -63,7 +73,7 @@ Executes `verify-core.js` to validate that all core components are present and f
 ### Obfuscate Code
 
 ```bash
-npm run obfuscate
+pnpm obfuscate
 ```
 
 Runs `obfuscate.js` to protect the source code using javascript-obfuscator.
@@ -73,7 +83,7 @@ Runs `obfuscate.js` to protect the source code using javascript-obfuscator.
 #### Build for Windows
 
 ```bash
-npm run build:win
+pnpm build:win
 ```
 
 Verifies core, obfuscates code, and builds Windows installer using electron-builder.
@@ -81,7 +91,7 @@ Verifies core, obfuscates code, and builds Windows installer using electron-buil
 #### Build for Linux
 
 ```bash
-npm run build:linux
+pnpm build:linux
 ```
 
 Verifies core, obfuscates code, and builds Linux packages using electron-builder.
@@ -89,7 +99,7 @@ Verifies core, obfuscates code, and builds Linux packages using electron-builder
 #### Full Production Build
 
 ```bash
-npm run build
+pnpm build
 ```
 
 Runs verification, obfuscation, and builds for all platforms.
@@ -107,6 +117,7 @@ The main Electron process that handles:
 - IPC communication
 - Core process management
 - System proxy configuration
+- Cross-platform support
 
 ### preload.js
 
@@ -115,9 +126,9 @@ Secure IPC preloading script that exposes only necessary APIs to the renderer pr
 ### verify-core.js
 
 Validates that all core components are present and functional:
-- Checks for Xray binaries
-- Validates x2j tool
-- Verifies PowerShell scripts
+- Checks for Xray binaries (platform-specific)
+- Validates x2j tool (platform-specific)
+- Verifies platform-specific scripts
 - Ensures proper directory structure
 
 ### obfuscate.js
@@ -140,7 +151,7 @@ The application uses secure IPC communication between the renderer and main proc
 
 ### Starting Xray
 
-1. Fetch VMESS URL
+1. Fetch Xary URL
 2. Convert to JSON using x2j
 3. Execute Xray with configuration
 4. Monitor process status
@@ -160,20 +171,23 @@ Uses PowerShell scripts to:
 - Set proxy address (127.0.0.1:10808)
 - Disable proxy when disconnecting
 
+### Linux Proxy Configuration
+
+Uses shell scripts to:
+- Enable system proxy for GNOME and KDE
+- Set proxy address (127.0.0.1:10808)
+- Disable proxy when disconnecting
+
 ### Cross-Platform Support
 
-- Windows: PowerShell scripts
-- Linux: Shell scripts (planned)
+- Windows: PowerShell scripts and .exe binaries
+- Linux: Shell scripts and ELF binaries
 
 ## Environment Configuration
 
 ### Build Tool
 
-npm scripts defined in `package.json`
-
-### Dependencies Management
-
-npm with package-lock.json
+pnpm scripts defined in `package.json`
 
 ### Build Outputs
 
@@ -182,14 +196,14 @@ Configured via electron-builder to output installers in `/release` folder
 ### Platform Targets
 
 - Windows: NSIS installer
-- Linux: AppImage and DEB
+- Linux: AppImage, DEB, RPM, and tar.gz packages
 
 ## GitHub Actions
 
 The project uses GitHub Actions for CI/CD:
 
-1. Build on Windows runner
-2. Create release artifacts
+1. Build on Windows and Ubuntu runners
+2. Create release artifacts for both platforms
 3. Publish to GitHub Releases
 
 ## Code Protection
@@ -209,6 +223,7 @@ The application uses javascript-obfuscator to protect the source code:
 2. Proxy configuration
 3. Process management
 4. UI responsiveness
+5. Cross-platform compatibility
 
 ### Automated Testing
 
@@ -220,14 +235,15 @@ Planned for future releases.
 
 Check the console output in development mode or use:
 ```bash
-npm start -- --debug
+pnpm start -- --debug
 ```
 
 ### Common Issues
 
 1. **Xray not starting**: Check core components verification
 2. **Proxy not working**: Verify system proxy settings
-3. **Connection issues**: Validate VMESS URL and configuration
+3. **Connection issues**: Validate Xray URL and configuration
+4. **Permission issues (Linux)**: Ensure scripts have execute permissions
 
 ## Contributing
 

@@ -25,13 +25,13 @@
       "settings": {
         "vnext": [
           {
-            "address": "2606:4700:3036:0:a36a:3160:b566:8741",
+            "address": "de.nitroo-tech.ru",
             "port": 443,
             "users": [
               {
                 "encryption": "none",
-                "flow": "",
-                "id": "eb9123d0-d342-49a8-84d7-a0257a6f0260",
+                "flow": "xtls-rprx-vision",
+                "id": "cd79807f-bcef-46b8-93b6-229676a0c1a0",
                 "level": 8
               }
             ]
@@ -39,21 +39,20 @@
         ]
       },
       "streamSettings": {
-        "network": "ws",
-        "security": "tls",
-        "wsSettings": {
-          "headers": {
-            "Host": "vless.hubp.de"
-          },
-          "path": "/snippets/ip=tp50000.kr.proxyip.fgfw.eu.org:50000"
+        "network": "tcp",
+        "security": "reality",
+        "tcpSettings": {
+          "header": {
+            "type": "none"
+          }
         },
-        "tlsSettings": {
+        "realitySettings": {
           "allowInsecure": true,
-          "alpn": [
-            "h3"
-          ],
-          "fingerprint": "random",
-          "serverName": "vless.hubp.de"
+          "fingerprint": "chrome",
+          "publicKey": "y_AlGiUJiCRWCT8FyrfUm-Cmpm0bl0cSUMRP3VZ9X0I",
+          "serverName": "google.com",
+          "shortId": "89dbda1a1c9369",
+          "spiderX": ""
         }
       },
       "mux": {
@@ -85,5 +84,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🔥 C-iii"
+  "remarks": "🇩🇪 Germany"
 }

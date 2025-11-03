@@ -25,7 +25,7 @@
       "settings": {
         "vnext": [
           {
-            "address": "icook.hk",
+            "address": "2606:4700:3036:ef:95e:7a29:2ccc:d331",
             "port": 443,
             "users": [
               {
@@ -85,5 +85,5 @@
     "rules": [],
     "balancers": []
   },
-  "remarks": "🔥 Warp"
+  "remarks": "☁️ Cloudflare Warp"
 }
