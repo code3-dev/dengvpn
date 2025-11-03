@@ -54,25 +54,45 @@ jobs:
       shell: pwsh
       run: |
         $version = $env:VERSION
-        if (Test-Path "release\DengVPN Setup $version.exe") {
-          Rename-Item -Path "release\DengVPN Setup $version.exe" -NewName "DengVPN-$version-x64.exe"
+        # Check for the actual NSIS installer pattern
+        $installerPath = "release\DengVPN Setup $version.exe"
+        if (Test-Path $installerPath) {
+          Rename-Item -Path $installerPath -NewName "DengVPN-$version-x64.exe"
+        } else {
+          # List files to debug what was actually created
+          Get-ChildItem -Path release\
         }
 
     - name: Rename Linux installers
       if: matrix.os == 'ubuntu-latest'
       run: |
         version=$VERSION
-        # Rename AppImage if it exists
+        # List all files for debugging
+        ls -la release/
+        
+        # Rename AppImage if it exists (electron-builder default pattern)
         if [ -f "release/DengVPN-$version.AppImage" ]; then
           mv "release/DengVPN-$version.AppImage" "release/DengVPN-$version-x86_64.AppImage"
         fi
-        # Rename deb if it exists
+        
+        # Rename deb if it exists (electron-builder default pattern)
         if [ -f "release/dengvpn_$version_amd64.deb" ]; then
           mv "release/dengvpn_$version_amd64.deb" "release/DengVPN-$version-amd64.deb"
+        fi
+        
+        # Rename rpm if it exists (electron-builder default pattern)
+        if [ -f "release/dengvpn-$version.rpm" ]; then
+          mv "release/dengvpn-$version.rpm" "release/DengVPN-$version-x86_64.rpm"
+        fi
+        
+        # Rename tar.gz if it exists (electron-builder default pattern)
+        if [ -f "release/dengvpn-$version.tar.gz" ]; then
+          mv "release/dengvpn-$version.tar.gz" "release/DengVPN-$version-x86_64.tar.gz"
         fi
 
     - name: List release files
       run: |
+        echo "=== Final release directory contents ==="
         ls -R release/
 
     - name: Upload Windows artifacts
@@ -91,7 +111,7 @@ jobs:
 
     - name: Upload release assets
       uses: softprops/action-gh-release@v1
-      if: github.ref == 'refs/heads/master'
+      if: github.ref == 'refs/heads/master' && success()
       with:
         tag_name: v${{ env.VERSION }}
         name: DengVPN ${{ env.VERSION }}
@@ -101,5 +121,7 @@ jobs:
           release/DengVPN-${{ env.VERSION }}-x64.exe
           release/DengVPN-${{ env.VERSION }}-x86_64.AppImage
           release/DengVPN-${{ env.VERSION }}-amd64.deb
+          release/DengVPN-${{ env.VERSION }}-x86_64.rpm
+          release/DengVPN-${{ env.VERSION }}-x86_64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

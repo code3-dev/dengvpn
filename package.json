@@ -67,12 +67,14 @@
         "nsis"
       ],
       "icon": "assets/icon.ico",
-      "requestedExecutionLevel": "requireAdministrator"
+      "requestedExecutionLevel": "requireAdministrator",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "nsis": {
       "allowToChangeInstallationDirectory": true,
       "oneClick": false,
-      "license": "./LICENSE"
+      "license": "./LICENSE",
+      "artifactName": "${productName} Setup ${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -83,7 +85,17 @@
       ],
       "category": "Network",
       "icon": "assets/icon.png",
-      "maintainer": "h3dev.pira@gmail.com"
+      "maintainer": "h3dev.pira@gmail.com",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "deb": {
+      "artifactName": "${name}_${version}_${arch}.${ext}"
+    },
+    "rpm": {
+      "artifactName": "${name}-${version}.${ext}"
+    },
+    "AppImage": {
+      "artifactName": "${productName}-${version}.${ext}"
     },
     "asar": true,
     "npmRebuild": false
