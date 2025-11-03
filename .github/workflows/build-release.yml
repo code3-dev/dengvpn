@@ -81,8 +81,8 @@ jobs:
         fi
         
         # Rename rpm if it exists (electron-builder default pattern)
-        if [ -f "release/dengvpn-$version.rpm" ]; then
-          mv "release/dengvpn-$version.rpm" "release/DengVPN-$version-x86_64.rpm"
+        if [ -f "release/dengvpn-$version.x86_64.rpm" ]; then
+          mv "release/dengvpn-$version.x86_64.rpm" "release/DengVPN-$version-x86_64.rpm"
         fi
         
         # Rename tar.gz if it exists (electron-builder default pattern)

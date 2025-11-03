@@ -68,13 +68,12 @@
       ],
       "icon": "assets/icon.ico",
       "requestedExecutionLevel": "requireAdministrator",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
+      "artifactName": "${productName} Setup ${version}.${ext}"
     },
     "nsis": {
       "allowToChangeInstallationDirectory": true,
       "oneClick": false,
-      "license": "./LICENSE",
-      "artifactName": "${productName} Setup ${version}.${ext}"
+      "license": "./LICENSE"
     },
     "linux": {
       "target": [
@@ -86,16 +85,16 @@
       "category": "Network",
       "icon": "assets/icon.png",
       "maintainer": "h3dev.pira@gmail.com",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
-    },
-    "deb": {
-      "artifactName": "${name}_${version}_${arch}.${ext}"
-    },
-    "rpm": {
-      "artifactName": "${name}-${version}.${ext}"
-    },
-    "AppImage": {
-      "artifactName": "${productName}-${version}.${ext}"
+      "artifactName": "${productName}-${version}-${arch}.${ext}",
+      "deb": {
+        "artifactName": "${name}_${version}_${arch}.${ext}"
+      },
+      "rpm": {
+        "artifactName": "${name}-${version}.${ext}"
+      },
+      "appImage": {
+        "artifactName": "${productName}-${version}.${ext}"
+      }
     },
     "asar": true,
     "npmRebuild": false
