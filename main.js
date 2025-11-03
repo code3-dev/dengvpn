@@ -475,7 +475,7 @@ function createWindow() {
             dialog.showMessageBox(win, {
               type: 'info',
               title: 'About DengVPN',
-              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.4.0\nUsing Xray Core`,
+              message: `DengVPN - Free & Unlimited VPN Service\nVersion: 1.5.0\nUsing Xray Core`,
               buttons: ['OK'],
             });
           }
