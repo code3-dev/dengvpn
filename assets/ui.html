@@ -561,11 +561,26 @@
         connectionStatusText.textContent = 'Connected';
         connectButton.classList.remove('disconnected');
         connectButton.classList.add('connected');
+        // Start connection timer when connected
+        connectionStartTime = new Date();
+        startConnectionTimer();
+        // Start ping interval
+        startPingInterval();
       } else {
         connectionDot.classList.remove('connected');
         connectionStatusText.textContent = 'Disconnected';
         connectButton.classList.remove('connected');
         connectButton.classList.add('disconnected');
+        // Stop connection timer when disconnected
+        connectionStartTime = null;
+        stopConnectionTimer();
+        // Stop ping interval
+        stopPingInterval();
+        // Reset ping display
+        pingValue.textContent = '--';
+        currentPing = '--';
+        // Reset connection time display
+        connectionTime.textContent = 'Connection time: --:--:--';
       }
     }
 
@@ -725,6 +740,14 @@
       // Listen for connection status updates
       window.vpn.onConnectionStatus((connected) => {
         updateConnectionStatus(connected);
+      });
+      
+      // Listen for connection stats updates
+      window.vpn.onConnectionStats((stats) => {
+        if (stats.ping !== undefined && stats.ping !== null) {
+          pingValue.textContent = stats.ping === -1 ? 'Error' : stats.ping;
+          currentPing = stats.ping === -1 ? 'Error' : stats.ping;
+        }
       });
     }
 

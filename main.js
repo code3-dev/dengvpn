@@ -806,6 +806,8 @@ function startV2ray(configUrl, isSwitching = false) {
       isConnected = true;
       if (win) {
         win.webContents.send('connection-status', true);
+        // Start connection timer
+        global.connectionStartTime = Date.now();
       }
       
       // Set system proxy only if not switching servers
@@ -973,7 +975,7 @@ async function measurePing() {
     const startTime = Date.now();
     // Using axios with optimized settings
     await axios.get('https://www.gstatic.com/generate_204', { 
-      timeout: 3000, // Reduced timeout for faster response
+      timeout: 5000, // Reduced timeout for faster response
       validateStatus: () => true, // Accept any status code
       headers: {
         'Cache-Control': 'no-cache',
@@ -1618,13 +1620,6 @@ ipcMain.on('connect-vpn', (event, configIndex) => {
       // New format with local JSON file - this is what we want
       console.log(`Starting Xray with local JSON file: ${selectedConfig.jsonFile}`);
       startV2ray(selectedConfig.jsonFile);
-      
-      // Start ping interval after successful connection
-      setTimeout(() => {
-        if (isConnected) {
-          startPingInterval();
-        }
-      }, 2000);
     } else if (selectedConfig.url) {
       // Old format with URL property - check if it's a share link or JSON URL
       console.log(`Starting Xray with URL: ${selectedConfig.url}`);
@@ -1639,13 +1634,6 @@ ipcMain.on('connect-vpn', (event, configIndex) => {
       } else {
         // This should be a JSON config URL
         startV2ray(selectedConfig.url);
-        
-        // Start ping interval after successful connection
-        setTimeout(() => {
-          if (isConnected) {
-            startPingInterval();
-          }
-        }, 2000);
       }
     } else {
       // Direct config string - this should be a share link
@@ -1662,13 +1650,6 @@ ipcMain.on('connect-vpn', (event, configIndex) => {
         dialog.showErrorBox('Connection Error', 'This configuration format is not supported. Please refresh the server list.');
       } else {
         startV2ray(selectedConfig);
-        
-        // Start ping interval after successful connection
-        setTimeout(() => {
-          if (isConnected) {
-            startPingInterval();
-          }
-        }, 2000);
       }
     }
   } else {
@@ -1689,13 +1670,6 @@ ipcMain.on('connect-vpn-url', (event, configUrl) => {
   } else {
     // This should be a JSON config URL
     startV2ray(configUrl);
-    
-    // Start ping interval after successful connection
-    setTimeout(() => {
-      if (isConnected) {
-        startPingInterval();
-      }
-    }, 2000);
   }
 });
 

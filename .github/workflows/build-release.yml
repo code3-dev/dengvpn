@@ -54,12 +54,13 @@ jobs:
       shell: pwsh
       run: |
         $version = $env:VERSION
-        # Check for the actual NSIS installer pattern
-        $installerPath = "release\DengVPN Setup $version.exe"
-        if (Test-Path $installerPath) {
-          Rename-Item -Path $installerPath -NewName "DengVPN-$version-x64.exe"
+        # With the updated package.json, the file should now be named correctly
+        $expectedPath = "release\DengVPN-$version-x64.exe"
+        if (Test-Path $expectedPath) {
+          Write-Output "Windows installer already has correct name"
         } else {
           # List files to debug what was actually created
+          Write-Output "Windows installer not found with expected name. Listing release directory:"
           Get-ChildItem -Path release\
         }
 
@@ -68,27 +69,48 @@ jobs:
       run: |
         version=$VERSION
         # List all files for debugging
+        echo "=== Files before renaming ==="
         ls -la release/
         
-        # Rename AppImage if it exists (electron-builder default pattern)
-        if [ -f "release/DengVPN-$version.AppImage" ]; then
-          mv "release/DengVPN-$version.AppImage" "release/DengVPN-$version-x86_64.AppImage"
+        # With the updated package.json, files should now be named correctly
+        # Check if AppImage has correct name
+        if [ -f "release/DengVPN-$version-x86_64.AppImage" ]; then
+          echo "AppImage already has correct name"
+        else
+          echo "AppImage not found with expected name: DengVPN-$version-x86_64.AppImage"
+          # Let's check what AppImage files exist
+          ls -la release/*.AppImage 2>/dev/null || echo "No .AppImage files found"
         fi
         
-        # Rename deb if it exists (electron-builder default pattern)
-        if [ -f "release/dengvpn_$version_amd64.deb" ]; then
-          mv "release/dengvpn_$version_amd64.deb" "release/DengVPN-$version-amd64.deb"
+        # Check if deb has correct name
+        if [ -f "release/DengVPN-$version-amd64.deb" ]; then
+          echo "deb already has correct name"
+        else
+          echo "deb not found with expected name: DengVPN-$version-amd64.deb"
+          # Let's check what deb files exist
+          ls -la release/*.deb 2>/dev/null || echo "No .deb files found"
         fi
         
-        # Rename rpm if it exists (electron-builder default pattern)
-        if [ -f "release/dengvpn-$version.x86_64.rpm" ]; then
-          mv "release/dengvpn-$version.x86_64.rpm" "release/DengVPN-$version-x86_64.rpm"
+        # Check if rpm has correct name
+        if [ -f "release/DengVPN-$version-x86_64.rpm" ]; then
+          echo "rpm already has correct name"
+        else
+          echo "rpm not found with expected name: DengVPN-$version-x86_64.rpm"
+          # Let's check what rpm files exist
+          ls -la release/*.rpm 2>/dev/null || echo "No .rpm files found"
         fi
         
-        # Rename tar.gz if it exists (electron-builder default pattern)
-        if [ -f "release/dengvpn-$version.tar.gz" ]; then
-          mv "release/dengvpn-$version.tar.gz" "release/DengVPN-$version-x86_64.tar.gz"
+        # Check if tar.gz has correct name
+        if [ -f "release/DengVPN-$version-x64.tar.gz" ]; then
+          echo "tar.gz already has correct name"
+        else
+          echo "tar.gz not found with expected name: DengVPN-$version-x64.tar.gz"
+          # Let's check what tar.gz files exist
+          ls -la release/*.tar.gz 2>/dev/null || echo "No .tar.gz files found"
         fi
+        
+        echo "=== Files after checking ==="
+        ls -la release/
 
     - name: List release files
       run: |
@@ -122,6 +144,6 @@ jobs:
           release/DengVPN-${{ env.VERSION }}-x86_64.AppImage
           release/DengVPN-${{ env.VERSION }}-amd64.deb
           release/DengVPN-${{ env.VERSION }}-x86_64.rpm
-          release/DengVPN-${{ env.VERSION }}-x86_64.tar.gz
+          release/DengVPN-${{ env.VERSION }}-x64.tar.gz
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

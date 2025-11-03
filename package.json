@@ -68,7 +68,7 @@
       ],
       "icon": "assets/icon.ico",
       "requestedExecutionLevel": "requireAdministrator",
-      "artifactName": "${productName} Setup ${version}.${ext}"
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "nsis": {
       "allowToChangeInstallationDirectory": true,
@@ -88,13 +88,13 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "deb": {
-      "artifactName": "${name}_${version}_${arch}.${ext}"
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "rpm": {
-      "artifactName": "${name}-${version}.${ext}"
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "appImage": {
-      "artifactName": "${productName}-${version}.${ext}"
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "asar": true,
     "npmRebuild": false
