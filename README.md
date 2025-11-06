@@ -29,7 +29,7 @@ DengVPN is a powerful, free, and unlimited bandwidth desktop VPN client powered 
 ### ✨ Key Features
 
 - ✅ **100% Free & Unlimited** bandwidth
-- 🔄 **Auto-fetches** updated Xeay configurations
+- 🔄 **Auto-fetches** updated Xray configurations
 - 🖱️ **One-click** connect/disconnect
 - ⚙️ **Automatically configures** system proxy (Windows & Linux)
 - 📊 **Real-time connection stats** (ping, uptime)
